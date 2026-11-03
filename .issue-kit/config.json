@@ -1,0 +1,1 @@
+{ "test": { "runner": "node", "files": ["tests/*.test.mjs"] } }

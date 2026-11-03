@@ -44,7 +44,7 @@ node scripts/issue-run/issue-run.mjs --dry-run     # 対象の Issue を見る�
 - **`editions/unity/files/` は KaedeScapeBuii で動いた実物の写し。** 変えるのは理由があるときだけで、変えたら試験の K-4（参照との比べ）の許す差を、理由と一緒に直す。いま許している差は、PC の中のパスを `<you>` に伏せたことだけ（公開のため）。
 - **Node 版（`editions/node/`）に PowerShell を入れない**（`.ps1`・`pwsh`・`powershell` の実行を書かない。Claude の道具を断る `PowerShell(…)` の設定の行だけは可。基本設計 D2）。Node 版の脚本は Node.js の標準の部品だけ（D11）。
 - `shared/claude-md/` の決まりは、両方の版の `CLAUDE.md` に同じ文で入れる（試験が見る）。
-- **このリポジトリの直下の `.claude/`・`scripts/`・`docs/guides/` は、`editions/node/files/` から入れた写し。** 直すときは `editions/node/files/` を直してから、`node editions/node/install.mjs --target . --update` で入れ直す（直下だけを直さない）。直下の `scripts/test.mjs`（`node --test` を回す）と `scripts/git-hooks/` だけはキット用。**コミットメッセージの形はフックが検査する**（形の正は `scripts/git-hooks/lib.mjs`。`commit` スキルのメッセージの節はこのリポジトリでは使わない。`--no-verify` を使わない）。
+- **このリポジトリの直下の `.claude/`・`scripts/`・`docs/guides/` は、`editions/node/files/` から入れた写し。** 直すときは `editions/node/files/` を直してから、`node editions/node/install.mjs --target . --update` で入れ直す（直下だけを直さない）。キット用なのは `scripts/git-hooks/` と、テストの入口の設定 `.issue-kit/config.json`（`node --test` で `tests/*.test.mjs` を回す）だけ（`scripts/test.mjs` も版の写し）。**コミットメッセージの形はフックが検査する**（形の正は `scripts/git-hooks/lib.mjs`。`commit` スキルのメッセージの節はこのリポジトリでは使わない。`--no-verify` を使わない）。
 - **キットは npm のパッケージに頼らない**（`package.json` に依存を足さない。見本のプロジェクトの中だけは可）。**npm に公開しない**（`npm publish` など）。キットは GitHub の公開リポジトリ（MIT）で配る。**公開のリポジトリなので、秘密の値・作者の private のリポジトリの中身・PC の中のパスを入れない。**
 - `node_modules/` `.issue-run/` は編集もコミットもしない。
 - **push は明示されたときだけ・force しない。** `git worktree add` / `remove` を勝手に実行しない。

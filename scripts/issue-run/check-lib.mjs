@@ -23,7 +23,8 @@ export function runTests({ filter, file } = {}) {
   const a = [join(root, 'scripts', 'test.mjs')];
   if (filter) a.push('--filter', filter);
   if (file) a.push('--file', file);
-  const r = spawnSync(process.execPath, a, { cwd: root, encoding: 'utf8' });
+  // 長い出力（Maven・dotnet）で既定の 1MB を超えると子が殺されて偽の FAIL になるので、受け取る量を広げる
+  const r = spawnSync(process.execPath, a, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
   const last = out.trim().split(/\r?\n/).filter((l) => l.startsWith('Result:')).at(-1) ?? '（Result: 行が無い）';
   check(r.status === 0 && last.startsWith('Result: PASS'), `テスト ${filter ?? file ?? '全部'}: ${last}`);
