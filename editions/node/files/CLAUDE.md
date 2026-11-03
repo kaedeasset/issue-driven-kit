@@ -9,7 +9,8 @@ Issue 駆動キット（Node 版）を入れた。入れた版は `.issue-kit/ve
 ## プロジェクト
 
 - <何を作るか。1〜3 行>
-- Node.js **22.14.0**（`.nvmrc`）・npm **11.6.2**・TypeScript・テストは **vitest**。<使うサービス（例: Cloudflare Workers・D1）>。
+- <使う言語・実行環境と版・テストの道具（例: TypeScript・Node.js 22.14.0・vitest／C#・.NET 10・xUnit／Java・JDK 25・JUnit）>。<使うサービス（例: Cloudflare Workers・D1）>。
+- キットの脚本には Node.js **22.14.0**（`.nvmrc`）・npm **11.6.2** が要る（作る物が Node でなくても）。テストの入口の設定は `.issue-kit/config.json`（どの道具で回すか。手順は `docs/guides/procedures/node-test-procedure.md`）。
 - ロジックは入出力（HTTP・DB）から外へ出し、ふつうの関数にする（単体の試験で速く確かめるため。design-cycle §2）。
 
 ## コマンド
@@ -17,7 +18,7 @@ Issue 駆動キット（Node 版）を入れた。入れた版は `.issue-kit/ve
 ```text
 node scripts/test.mjs                              # テスト（npm test も同じ）
 node scripts/test.mjs --filter '<テストの名前>'      # 1 本
-npm run typecheck                                  # 型の確かめ（package.json にあれば）
+<型の確かめ・lint などの決まったコマンド（あれば。例: npm run typecheck）>
 node scripts/issue-run/doctor.mjs                  # Issue の無人実行の点検
 node scripts/issue-run/issue-run.mjs --dry-run     # 対象の Issue を見るだけ（本番はユーザーが別の窓で）
 ```
@@ -40,10 +41,10 @@ node scripts/issue-run/issue-run.mjs --dry-run     # 対象の Issue を見る�
 
 ## 守るもの（変えない）
 
-- **`package.json` と `package-lock.json` は対で動かす。`package-lock.json` を手で直さない**（`npm install` で作り直す）。
-- **`migrations/` の既存のファイルを書き換えない。** 直しは新しい番号のマイグレーションで足す。
-- **デプロイ・公開をしない**（`wrangler deploy`・`npm publish` など）。本番の設定の値（ID・鍵）をファイルに書かない。<リポジトリの決まり（例: 無認証の API をデプロイしない）>。
-- `node_modules/` `dist/` `coverage/` `.wrangler/` `.issue-run/` と `.env`・`.dev.vars` は編集もコミットもしない。
+- <依存の定義と lock の扱い（例: **`package.json` と `package-lock.json` は対で動かす。`package-lock.json` を手で直さない**（`npm install` で作り直す））>。
+- <DB の移行の扱い（例: **`migrations/` の既存のファイルを書き換えない。** 直しは新しい番号のマイグレーションで足す）>。
+- **デプロイ・公開をしない**（<デプロイ・公開のコマンド（例: `wrangler deploy`・`npm publish`）>）。本番の設定の値（ID・鍵）をファイルに書かない。<リポジトリの決まり（例: 無認証の API をデプロイしない）>。
+- `.issue-run/` と <生成物と秘密のファイル（例: `node_modules/` `dist/` `coverage/` `.wrangler/` と `.env`・`.dev.vars`）> は編集もコミットもしない。
 - **push は明示されたときだけ・force しない。** `git worktree add` / `remove` を勝手に実行しない。
 - **セッションは自分の worktree から出ない。** 他のレーンの取り込み・状態の確認・編集は統合セッション（main）の仕事。**main で機能開発をしない**（main はレーン同期・push・文書と、同期の後のテストで落ちたものの修正まで）。
 

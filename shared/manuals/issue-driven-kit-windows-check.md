@@ -294,9 +294,9 @@ node C:\work\issue-driven-kit\editions\node\install.mjs --target . --dry-run
 
 | 期待する出力 | 終了コード |
 |---|---|
-| `new      .claude/issue-run/prompt.md` … `new      scripts/test.mjs` の 30 行 | |
+| `new      .claude/issue-run/prompt.md` … `new      scripts/test.mjs` の 31 行 | |
 | `gitignore .gitignore に足す: .issue-run/` | |
-| `合計 30 件: 写す 30` | |
+| `合計 31 件: 写す 31` | |
 | 最後の行 `Result: PASS (DryRun・何も書いていない)` | 0 |
 
 自分の `CLAUDE.md` が既にあると、その行が `aside    CLAUDE.md → CLAUDE.kit.md` になり、N6 の本番は既にある物を残してキットの物を横に置きます（`Result: PASS (… 件を写した・横に置いた 1 件 …)`）。そのあと「CLAUDE.kit.md の原則と入口を、既にある CLAUDE.md に足して、CLAUDE.kit.md を消して」と頼みます。ほかに中身の違うファイル（例：自分の `scripts/test.mjs`）があると、N6 の本番は何も書かずに `Result: FAIL (ぶつかる N 件)`（終了コード 1）で止まります。
@@ -317,7 +317,7 @@ npm pkg set scripts.test="node scripts/test.mjs"
 
 | コマンド | 期待する出力 | 終了コード |
 |---|---|---|
-| `install.mjs`（本番） | 最後の行 `Result: PASS (30 件を写した・版 node・キット <コミット>)` | 0 |
+| `install.mjs`（本番） | 最後の行 `Result: PASS (31 件を写した・版 node・キット <コミット>)` | 0 |
 | `npm ci` | `added 60 packages in <秒>s`（見本のとき。`Result:` 行は出ない） | 0 |
 | `npm pkg set …` | 何も出ない | 0 |
 

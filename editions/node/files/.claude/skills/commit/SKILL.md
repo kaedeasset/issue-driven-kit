@@ -2,10 +2,10 @@
 description: Use when the user asks to commit changes, stage files, or create a git commit. Triggers on "コミットして", "commit", "変更をコミット".
 ---
 
-# コミット Skill（Node.js＋TypeScript 用）
+# コミット Skill
 
 `git add` → `git commit` を一貫したルールで実行する。
-このプロジェクトは Node.js＋TypeScript（テストは vitest）。生成物は `.gitignore` 済み。
+このプロジェクトの言語とテストの道具は `CLAUDE.md` の「プロジェクト」に書いてある。生成物は `.gitignore` 済み。
 
 ## トリガー
 

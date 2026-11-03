@@ -13,7 +13,7 @@ project: KaedeScapeBuii
 |---|---|
 | 状態 | 基本設計・**決めること D1〜D12 は全部決定**（D2・D7・D12 はユーザーの指定、残りは 2026-10-23 ユーザー「おすすめで決めて」で推しの案に決定）。**K1・K2 済み**（2026-10-23。キットのリポジトリ [`mkanakureon/issue-driven-kit`](https://github.com/mkanakureon/issue-driven-kit)・公開（MIT）・K2 の確かめは 7 章の後ろ）。**K3〜K6 の仕事も済み**（キット自身に Node 版を入れ、キットの Issue #1〜#5 を無人の回で回して、5 件とも 1 回目で合格。2026-10-23 14:06〜14:33）。残りは人が Mac で確かめる K-6・K-7。K3（Node 版の見本のプロジェクト）から |
 | 元 | このリポジトリの Issue 駆動の一式（記録 23/02）・一般化の手順書 `issue-driven-repo-setup.md` |
-| 版 | **Unity 版**：Windows・PowerShell（いまのこのリポジトリの形）／**Node 版**：Windows と Mac・**PowerShell を使わず Node.js の脚本だけ**・テストは vitest |
+| 版 | **Unity 版**：Windows・PowerShell（いまのこのリポジトリの形）／**Node 版**：Windows と Mac・**PowerShell を使わず Node.js の脚本だけ**・テストの道具は `.issue-kit/config.json` で選ぶ（vitest・`node --test`・決めたコマンド。仕様 11 章） |
 | 最初に入れる先 | Unity 版 → このリポジトリ（同じ形になることの確かめ）／Node 版 → 作者の rpg-online-cloudflare（private・TypeScript・Cloudflare Workers・D1）。**2026-10-23 に外れた**：入れるのは作者が手で行い、Node 版の確かめはキット自身に入れて行った |
 | 変えた所 | 初版（同じ日）は「芯は PowerShell 7 で共通、Node は差し替え部品」だった。ユーザーの決定（2026-10-23「Unity は Windows 依存 PS を使う、vitest のほうは PS は使わない、node 関連のスクリプトだけでできるはず、2 つ区別して入れて、利用者は選択できるようにする」）で、**脚本は版ごとに別に作り、決まりと文書だけを共有する**形に書き直した |
 
@@ -33,7 +33,7 @@ project: KaedeScapeBuii
 | K-2 | **Node 版に PowerShell が出てこない**：`.ps1` が 0 本、脚本・設定・スキル・ひな形・手順書に `pwsh`・`powershell` が 0 件 | 検索して 0 件 | 機械 |
 | K-3 | **2 つの版の無人の回が、同じ Issue の本文を同じに読む**（合格の条件の行・確認コマンド・守るファイル・前提） | 共有の見本（Issue の本文 → 期待する読み取りの JSON。Unity 版の見本と Node 版の見本）を両方の版で読ませて比べる。ほかの版の確認コマンドの塊は読まない | 機械 |
 | K-4 | Unity 版を空のフォルダーに入れると、このリポジトリと同じ部品の組ができる（名前を埋めた後の差が、決めた所だけ） | 比べる脚本 | 機械 |
-| K-5 | Node 版のテストの入口が、全部・0 件・わざと落とすの 3 つで、期待どおりの `Result:` 行と終了コードを返す | 見本と rpg-online-cloudflare で回す | 機械 |
+| K-5 | Node 版のテストの入口が、全部・0 件・わざと落とすの 3 つで、期待どおりの `Result:` 行と終了コードを返す（決まりの正は仕様 11 章。道具は `.issue-kit/config.json` で選ぶ） | 見本と rpg-online-cloudflare で回す | 機械 |
 | K-6 | Node 版を rpg-online-cloudflare に入れた後、点検が NG 0・DryRun が終了コード 0 | **Windows（この PC）と Mac の両方**で回す | 機械（Mac は人が実行） |
 | K-7 | rpg-online-cloudflare で、**Mac** の無人の回が Issue を 1 件、1 回目の起動で合格させる | 結果のコメント | 機械（人が Mac で起動） |
 | K-8 | 利用者が、どちらの版を選べばよいかを読んで決められ、選んだ版だけを入れられる | 人が説明書を読む・入れる脚本が版を選ばせる | 人＋機械 |
@@ -78,7 +78,7 @@ flowchart TB
     subgraph NODE["editions/node/：Windows・Mac・Node.js だけ"]
         N0["スキル・CLAUDE.md・作業中に引く文書<br/>（Unity 版を元に Node の言葉で書く）"]
         N1["issue-run.mjs・stop-hook.mjs・doctor.mjs・sync-lanes.mjs"]
-        N2["test.mjs（vitest か node --test）"]
+        N2["test.mjs（.issue-kit/config.json の道具）"]
         N3["install.mjs"]
     end
     SHARED --> UNITY
@@ -96,7 +96,7 @@ flowchart TB
 | 選ぶ版 | 向いているリポジトリ | 動く OS | 要る道具 | 入れ方 |
 |---|---|---|---|---|
 | **Unity 版** | Unity のプロジェクト | Windows | Claude Code・git・gh・PowerShell 7・Unity | `pwsh editions\unity\install.ps1 -Target <リポジトリ>` |
-| **Node 版** | Node.js＋TypeScript のプロジェクト（テストは vitest） | Windows・Mac | Claude Code・git・gh・Node.js 22.14.0／npm 11.6.2 | `node editions/node/install.mjs --target <リポジトリ>` |
+| **Node 版** | Node.js＋TypeScript（vitest・`node --test`）のプロジェクト。.NET・Java など、テストの結果を JUnit の XML に書ける道具のプロジェクトも（道具は `.issue-kit/config.json`。仕様 11 章） | Windows・Mac | Claude Code・git・gh・Node.js 22.14.0／npm 11.6.2 | `node editions/node/install.mjs --target <リポジトリ>` |
 
 入れる脚本は、選んだ版の物だけを写す。もう片方の版の脚本は利用先に入らない（Node 版の利用先に `.ps1` が 1 本も入らない＝K-2）。
 
@@ -108,7 +108,7 @@ flowchart TB
 | Stop hook | `.claude/issue-run/stop-hook.ps1`（設定から `pwsh -NoProfile -File` で呼ぶ） | `.claude/issue-run/stop-hook.mjs`（設定から `node` で呼ぶ） |
 | 点検 | `Scripts/issue-run-doctor.ps1` | `scripts/issue-run/doctor.mjs` |
 | レーン同期 | `Scripts/Sync-Lanes.ps1` | `scripts/issue-run/sync-lanes.mjs` |
-| テストの入口 | `Scripts/unity-test.ps1` | `scripts/test.mjs`（`npm test` から呼ぶ） |
+| テストの入口 | `Scripts/unity-test.ps1` | `scripts/test.mjs`（`npm test` から呼ぶ）。道具は `.issue-kit/config.json` で選ぶ。決まりの正は仕様 11 章 |
 | Issue の確認コマンド | ```` ```pwsh ```` の塊（`pwsh -NoProfile -Command` で回す）。守るファイルは `# 守る: <パス>` | ```` ```js ```` の塊（ES モジュールとして `node` で回す。D9）。守るファイルは `// 守る: <パス>` |
 | 確認コマンドの手伝い | なし（PowerShell の書き方） | `scripts/issue-run/check-lib.mjs`（テストの入口を回す・ファイルがあるか・git の状態を見る、など。確認コマンドが使うので守るファイルになる） |
 | 使用中の判定 | Unity エディタがそのフォルダーを開いているか | 使用中にしない（`wrangler dev` が動いていれば知らせだけ。D5） |
@@ -188,10 +188,11 @@ flowchart TB
 | `doctor.mjs` | 道具（`node` の版・`gh auth status`・`claude --version`・`git`）・`origin`・キットの版（`.issue-kit/version` をキットのリポジトリの既定のブランチの最新と比べ、違えば・読めなければ WARN。9 章）・ラベル・部品・設定（裸の `CLAUDE.md` の禁止が無いか）・テストの入口・眠らせない設定 |
 | `sync-lanes.mjs` | `Sync-Lanes.ps1` と同じ順（レーン → main → 各レーン） |
 | `check-lib.mjs` | 確認コマンドから使う手伝い（テストの入口を回す・テストの名前がそろっているか・ファイル・git の状態） |
-| `test.mjs` | `package.json` の `issueKit.testRunner` で仕組みを選ぶ（欄が無ければ vitest。`node` なら `issueKit.testFiles` を `node --test` で回す）。結果を JUnit の XML に書かせ、件数を数えて `Result:` 行を出す。`--filter` で絞る（vitest の `-t`・`node --test` の `--test-name-pattern`）。0 件は FAIL |
+| `test.mjs` | `.issue-kit/config.json` の `test.runner` で道具を選ぶ（`vitest`・`node`（`test.files` を `node --test` で回す）・`command`（決めたコマンドを回し、`test.resultDirs` の JUnit の XML のうちこの回で新しくできた物を読む）。設定が無い・形が違えば FAIL。既定の値は無い）。結果を 1 つの JUnit の XML にそろえ、`<testcase>` を数えて `Result:` 行を出す。`--filter` で絞る（vitest の `-t`・`node --test` の `--test-name-pattern`・`command` の `test.filterArgs`）。0 件は FAIL。**テストの入口の決まりの正は仕様 11 章**（`shared/spec/issue-run-spec.md`） |
+| `.issue-kit/config.json` | テストの入口の設定のひな形（`{ "test": { "runner": "vitest" } }`）。利用先が書き換える物で、`--update` で上書きしない。無人の回は書き換えられない（実行用の設定の deny） |
 | `vitest.config.ts` の断片 | D3 |
 | `install.mjs` | 共有の部品と Node 版の部品を写し、名前を埋め、`.issue-kit/version` に元のコミットとキットのリポジトリを書く |
-| 守るもの | `package-lock.json` を手で直さない・`migrations/` の既存のファイルを書き換えない（足すだけ）・`wrangler.jsonc` に本番の値を入れない・**`wrangler deploy` をしない**（無認証の API をデプロイしない） |
+| 守るもの | ひな形の `CLAUDE.md` では、依存と lock・DB の移行・デプロイと公開のコマンド・生成物と秘密のファイルを、利用先が埋める欄にする（言語を決め打ちしない）。例として Node の値（`package-lock.json` を手で直さない・`migrations/` の既存のファイルを書き換えない・**`wrangler deploy` をしない**）を括弧で残す |
 | `node-test-procedure.md` | テストの入口の使い方・結果の読み方 |
 | `.gitignore` の断片 | `.issue-run/`・テストの出力 |
 

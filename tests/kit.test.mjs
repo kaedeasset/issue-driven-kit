@@ -4,6 +4,7 @@
 //   K-3  （Unity 側）Unity 版の読み取りの関数が、見本を答えどおりに読み、Node 版の見本の js の塊を確認コマンドにしない … Windows と pwsh があるときだけ
 //   K-4  Unity 版を空の git の作業場所に入れると、参照（KaedeScapeBuii）と同じ物ができる … 環境変数 KIT_UNITY_REFERENCE があるときだけ
 //   共有の決まり（原則・進め方の決まり）が、各版の CLAUDE.md にそのまま入っている
+//   移行ガイドの節・issueKit の語が残っていない・Node 版のひな形が言語とテストの道具を決め打ちしない（設計 docs/design/test-entry-config-design.md の 2.12）
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdtempSync, rmSync, statSync, cpSync } from 'node:fs';
@@ -40,7 +41,7 @@ const sharedFiles = [
   'shared/claude-md/principles.md', 'shared/claude-md/conventions.md',
   'shared/manuals/issue-driven-guide-for-teams.md', 'shared/manuals/issue-driven-prompt-manual.md',
   'shared/manuals/prompt-suggestions-guide.md', 'shared/manuals/issue-driven-repo-setup.md',
-  'shared/manuals/issue-driven-kit-install-guide.md',
+  'shared/manuals/issue-driven-kit-install-guide.md', 'shared/manuals/issue-driven-kit-migration-guide.md',
   'shared/reading/why-suggestions-worked.md', 'LICENSE',
   'docs/design/issue-driven-kit-basic-design.md',
   'editions/unity/install.ps1',
@@ -69,6 +70,39 @@ test('共有の決まりが、各版の CLAUDE.md にそのまま入っている
       assert.ok(read(md).includes(text), `${md} に ${block} が無い（版の CLAUDE.md の決まりを変えたら shared/ も同じに直す）`);
     }
   }
+});
+
+test('移行ガイド: 決まった節がある', () => {
+  const heads = read('shared/manuals/issue-driven-kit-migration-guide.md').split('\n').filter((l) => l.startsWith('## '));
+  for (const h of ['## 1. この版で変わること', '## 2. 移す手順', '## 3. 確かめ方', '## 4. .NET と Java の設定の例', '## 5. 古い形のまま上げたとき']) {
+    assert.ok(heads.includes(h), `移行ガイドに「${h}」の節が無い`);
+  }
+});
+
+// 古い設定の欄（package.json の issueKit）は読まない（後方互換を作らない）。語が残っていると、利用者が古い形を書いてしまう。
+// 探すのはキットの版・共有の部品・見本（移行ガイドは古い形を説明するので除く。node_modules は見ない）
+test('issueKit の語が、キットの版と共有の部品と見本に残っていない', () => {
+  const skip = new Set(['shared/manuals/issue-driven-kit-migration-guide.md']);
+  const walk = (d) => readdirSync(join(kit, d), { withFileTypes: true }).flatMap((e) => {
+    const rel = `${d}/${e.name}`;
+    if (e.isDirectory()) return e.name === 'node_modules' ? [] : walk(rel);
+    return [rel];
+  });
+  const hits = ['editions', 'shared', 'examples'].flatMap(walk)
+    .filter((f) => !skip.has(f) && /\.(md|mjs|js|cjs|ts|json|jsonc|ps1|txt|yml|yaml)$/.test(f))
+    .filter((f) => read(f).includes('issueKit'));
+  assert.deepEqual(hits, [], `issueKit が残っている: ${hits.join(', ')}`);
+});
+
+// Node 版は .NET・Java の利用先にも入れる。ひな形に言語とテストの道具を決め打ちすると、利用先で誤りになる（設計 2.9）
+test('Node 版のひな形が言語とテストの道具を決め打ちしない', () => {
+  const md = read('editions/node/files/CLAUDE.md');
+  assert.ok(!md.includes('テストは **vitest**'), 'ひな形の CLAUDE.md が vitest を決め打ちしている');
+  assert.ok(!/^npm run typecheck\s+#/m.test(md), 'ひな形の CLAUDE.md のコマンドが npm run typecheck を決め打ちしている');
+  assert.ok(md.includes('.issue-kit/config.json'), 'ひな形の CLAUDE.md にテストの入口の設定の置き場が無い');
+  const commit = read('editions/node/files/.claude/skills/commit/SKILL.md');
+  assert.ok(!/Node\.js＋TypeScript/.test(commit), 'commit スキルが言語を決め打ちしている');
+  assert.ok(!commit.includes('（テストは vitest）'), 'commit スキルがテストの道具を決め打ちしている');
 });
 
 test('見本の答えの形', () => {

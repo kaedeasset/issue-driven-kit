@@ -51,11 +51,11 @@ flowchart LR
 
 | | **Unity 版** | **Node 版** |
 |---|---|---|
-| 向いているリポジトリ | Unity のプロジェクト | Node.js＋TypeScript のプロジェクト（テストは vitest） |
+| 向いているリポジトリ | Unity のプロジェクト | Node.js＋TypeScript（vitest・`node --test`）のプロジェクト。.NET・Java など、テストの結果を JUnit の XML に書ける道具のプロジェクトも（脚本を動かすのに Node.js は要る） |
 | 動く OS | Windows | **Windows・Mac** |
 | 脚本 | PowerShell | **Node.js だけ**（PowerShell は使わない・入らない） |
 | Issue の確認コマンド | ```` ```pwsh ```` の塊 | ```` ```js ```` の塊 |
-| テストの入口 | `Scripts/unity-test.ps1` | `scripts/test.mjs`（`npm test`） |
+| テストの入口 | `Scripts/unity-test.ps1` | `scripts/test.mjs`（`npm test`）。どの道具で回すかは `.issue-kit/config.json` |
 | 置き場の名前 | `Scripts/`・`Docs/` | `scripts/`・`docs/`（小文字） |
 | 実際に動いた例 | KaedeScapeBuii（Issue 13 件が全部合格） | キット自身（Node 版を入れて、キットを Issue 駆動で作っている・Windows）と、最初の利用先 `rpg-online-cloudflare`（Mac。無人の回で 4 件とも 1 回目で合格） |
 | 確かめた OS | Windows | Windows・Mac（macOS 15.8.1。手順は「[付録 D キットの受け入れの確かめ（Mac）](#付録-d-キットの受け入れの確かめmac)」） |
@@ -210,6 +210,12 @@ gh repo clone <アカウント>/<名前>
 このリポジトリに Node 版を入れて。まず --dry-run で、写すファイルと、ぶつかるファイルを見せて
 ```
 
+言語が Node でないリポジトリ（.NET・Java など）では、続けてこう入力します（入れた後の手順 4 の順 4 で使います）。
+
+```text
+このリポジトリのテストを回すコマンドと、結果の JUnit の XML が出るフォルダーを調べて、.issue-kit/config.json を runner: command で書いて
+```
+
 **Unity 版**
 
 ```text
@@ -222,8 +228,9 @@ gh repo clone <アカウント>/<名前>
 |---|---|
 | 1 | 入れる脚本を `--dry-run`（Unity 版は `-DryRun`）で実行し、写すファイルの一覧と、既にあるファイルとぶつかる所を見せる。ここで止まる |
 | 2 | 人が「入れて」と入力したら、入れる脚本を本番で実行する。既にあるファイルは上書きしない |
-| 3 | **Node 版だけ**：vitest（と、Cloudflare Workers のプロジェクトなら `@cloudflare/vitest-plugin`。旧 `@cloudflare/vitest-pool-workers` は非推奨）を `devDependencies` に足し、`npm test` が `scripts/test.mjs` を呼ぶようにする。`package.json` の `engines` と `.nvmrc` に Node.js の版を書く。版の組み合わせは公式の案内で確かめて固定する（確かめた版は「[確かめた版](#確かめた版)」の表。入れる脚本はパッケージを足さない） |
-| 4 | `CLAUDE.md` の「プロジェクト」「コマンド」を、このリポジトリに合わせて書く（何を作るか・使う技術・テストの打ち方）。入れる脚本が `CLAUDE.kit.md` などを横に置いたときは、先にその中身を既にある物に足して、横に置いた物を消す |
+| 3 | **Node 版で、テストを vitest で回すとき**：vitest（と、Cloudflare Workers のプロジェクトなら `@cloudflare/vitest-plugin`。旧 `@cloudflare/vitest-pool-workers` は非推奨）を `devDependencies` に足し、`npm test` が `scripts/test.mjs` を呼ぶようにする。`package.json` の `engines` と `.nvmrc` に Node.js の版を書く。版の組み合わせは公式の案内で確かめて固定する（確かめた版は「[確かめた版](#確かめた版)」の表。入れる脚本はパッケージを足さない） |
+| 4 | **Node 版だけ**：`.issue-kit/config.json` に、テストを回す道具を書く（入れる脚本は `{ "test": { "runner": "vitest" } }` のひな形を写す。vitest ならそのまま）。`node --test` なら `{ "test": { "runner": "node", "files": ["tests/*.test.mjs"] } }`。言語が Node でないとき（.NET・Java など）は `runner` を `command` にし、テストを回すコマンドと、結果の JUnit の XML が出るフォルダーを書く（例は手順書 `docs/guides/procedures/node-test-procedure.md` と、キットの移行ガイド `shared/manuals/issue-driven-kit-migration-guide.md` の 4 章）。このときは 3 の vitest と `npm test` は要らない |
+| 5 | `CLAUDE.md` の「プロジェクト」「コマンド」を、このリポジトリに合わせて書く（何を作るか・使う技術・テストの打ち方）。入れる脚本が `CLAUDE.kit.md` などを横に置いたときは、先にその中身を既にある物に足して、横に置いた物を消す |
 
 Cloudflare Workers のプロジェクトでは、`vitest.config.ts` で `@cloudflare/vitest-plugin` の `cloudflareTest` を使い、`wrangler.jsonc` を読ませます（Cloudflare の公式の案内「Write your first test」の書き方）。
 
@@ -248,7 +255,7 @@ export default defineConfig({
 |---|---|
 | `--target <パス>`／`-Target <パス>` | 入れる先（git の作業場所の直下）。直下でなければ止まる |
 | `--dry-run`／`-DryRun` | 写すファイルと、ぶつかるファイルを出すだけ。何も書かない（`Result: PASS (DryRun・何も書いていない)`） |
-| （なし） | 初めて入れる。既にあるファイルは上書きしない。利用先が手を入れる物（Node 版 `CLAUDE.md`、Unity 版 `CLAUDE.md`・`.gitignore`・`.gitattributes`）が既にあれば、それは残し、キットの物を `CLAUDE.kit.md`・`.gitignore.kit` のように横に置いて残りを入れる（`Result: PASS (… 件を写した・横に置いた N 件 …)`）。ほかに中身の違うファイルがあれば、何も書かずに一覧を出して `Result: FAIL (ぶつかる N 件)` |
+| （なし） | 初めて入れる。既にあるファイルは上書きしない。利用先が手を入れる物（Node 版 `CLAUDE.md`・`.issue-kit/config.json`、Unity 版 `CLAUDE.md`・`.gitignore`・`.gitattributes`）が既にあれば、それは残し、キットの物を `CLAUDE.kit.md`・`.gitignore.kit` のように横に置いて残りを入れる（`Result: PASS (… 件を写した・横に置いた N 件 …)`）。ほかに中身の違うファイルがあれば、何も書かずに一覧を出して `Result: FAIL (ぶつかる N 件)` |
 | `--update`／`-Update` | 入っている版を上げる。利用先が手を入れるファイル（`CLAUDE.md` など）は上書きせずに残し、その一覧と最後の行の「残した N 件」で知らせる（`Result: PASS (… 件を写した・残した N 件 …)`）。残した物はキットの物と比べて要る所を足す（Claude Code に頼める）。ほかのファイルは、手を入れていても上げる（上書きする） |
 
 ```text
@@ -304,7 +311,7 @@ issue-run を DryRun で回して
 |---|---|
 | 道具（node・npm・git・gh・claude）・gh のログイン・`origin`・ラベル・部品のファイル | `OK` |
 | 禁止の設定 | `OK   設定: deny <数> 個・Stop hook（node）…`（裸の `CLAUDE.md` の禁止が無い） |
-| テストの仕組み（Node 版） | `vitest` が `devDependencies` にあり、`node_modules` に入っている。`npm test` が `scripts/test.mjs` を呼ぶ |
+| テストの仕組み（Node 版） | `.issue-kit/config.json` があって形が正しい。`runner` が `vitest` なら `vitest` が `devDependencies` にあり `node_modules` に入っている、`node` なら `files` がある、`command` なら先頭の道具が見つかる。`package.json` があれば、`npm test` が `scripts/test.mjs` を呼ぶ |
 | テストの入口（Node 版。`--run-tests` を付けたときだけ） | `OK   テスト: Result: PASS …` |
 | キットの版（Node 版） | 入っている版がキットの最新なら `OK`、古ければ `WARN`（手順 8 で新しくする） |
 | 長期トークン | `CLAUDE_CODE_OAUTH_TOKEN` が無ければ `WARN`（手順 1.3） |
@@ -392,13 +399,15 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 
 `.issue-kit/version` に、いま入っているキットの元のコミットとキットのリポジトリ（Node 版）が書いてあります。`dirty` が `true` のときは、入れたときのキットに未コミットの変更があり、写した中身が `commit` のコミットに入っていないかもしれません（入れる前のキットで測ります。キットの `.issue-kit/version` の差は、入れる脚本が書くファイルなので数えないことにしています）。点検は、キットの最新より古ければ `WARN キットの版: 古い。…` で知らせます。
 
+上げる版で設定や脚本の形が変わったときは、キットの移行ガイド（`shared/manuals/issue-driven-kit-migration-guide.md`）の手順で移します。古い形は読みません（例：テストの入口の設定は `.issue-kit/config.json` だけを読み、無ければ `Result: FAIL`）。
+
 ---
 
 ## 困ったとき
 
 | 症状 | 原因 | 直し方 |
 |---|---|---|
-| 入れる脚本が `CLAUDE.kit.md` を横に置いた | 既に `CLAUDE.md` がある（Unity 版は `.gitignore`・`.gitattributes` も同じ。`.gitignore.kit` などになる） | Claude Code に頼む（「CLAUDE.kit.md の原則と入口を、既にある CLAUDE.md に足して、CLAUDE.kit.md を消して」） |
+| 入れる脚本が `CLAUDE.kit.md` を横に置いた | 既に `CLAUDE.md` がある（Node 版で既に `.issue-kit/config.json` があれば `.issue-kit/config.kit.json`。既にある方を使い、横に置いた物は消してよい。Unity 版は `.gitignore`・`.gitattributes` も同じ。`.gitignore.kit` などになる） | Claude Code に頼む（「CLAUDE.kit.md の原則と入口を、既にある CLAUDE.md に足して、CLAUDE.kit.md を消して」） |
 | 入れる脚本が「ぶつかる」と止まった（何も書いていない） | 利用先が手を入れる物でないファイルで、同じ名前・違う中身の物がある（例：既にある `scripts/test.mjs`） | 一覧を見て、そのファイルをどうするか Claude Code と決める（名前を変えて退ける・キットの物に足す形にする）。そのあと入れ直す |
 | テストの入口が 0 件で PASS になる | テストの入口の作りの誤り | 5.1 の 3 つで確かめ直す。PASS になるなら直してから先に進む |
 | `gh` が見つからない（Windows） | 入れた直後のシェルに PATH が通っていない | 新しい窓を開く |
@@ -434,7 +443,7 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 
 ### B.1 Node 版
 
-入れる脚本が写すのは `editions/<版>/files/` の中身（Node 版 30 件）です。`（手順 4 で）` と書いた物は、入れる脚本ではなく手順 4 で Claude Code が作ります。
+入れる脚本が写すのは `editions/<版>/files/` の中身（Node 版 31 件）です。`（手順 4 で）` と書いた物は、入れる脚本ではなく手順 4 で Claude Code が作ります。
 
 ```text
 <自分のリポジトリ>/
@@ -447,9 +456,10 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 │  ├─ skills/                         github-issue・design-cycle・commit・push・pr・save-report・document-authoring・lane-sync・file-header（どれも SKILL.md）
 │  └─ issue-run/                      prompt.md・settings.json・stop-hook.mjs
 ├─ .github/ISSUE_TEMPLATE/claude-run.md
+├─ .issue-kit/config.json             テストの入口の設定（どの道具で回すか。ひな形は vitest。手順 4 で自分の道具に直す。--update で上書きしない）
 ├─ .issue-kit/version                 キットのリポジトリ・元のコミット・dirty（入れる前のキットに未コミットの変更があったか。キットの .issue-kit/version の差は数えない）・版・入れた日時・写したファイルの一覧
 ├─ scripts/
-│  ├─ test.mjs                        テストの入口（vitest か node --test を回し、最後の行が Result:）
+│  ├─ test.mjs                        テストの入口（.issue-kit/config.json の道具を回し、最後の行が Result:）
 │  └─ issue-run/
 │     ├─ issue-run.mjs                無人の回の本体（--dry-run で見るだけ）
 │     ├─ lib.mjs                      本体のロジック（Issue の本文の読み取りなど。試験で直接確かめる）
@@ -492,7 +502,7 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 | 順 | 入力するプロンプト・コマンド | 気をつけること |
 |---|---|---|
 | 1 | `cp -R ~/work/issue-driven-kit/examples/node-sample ~/work/my-app && cd ~/work/my-app && git init -q` → そのフォルダーで `claude` | 見本は写して使う（キットの clone の中の `examples/node-sample/` へ直に入れない） |
-| 2 | `~/work/issue-driven-kit の導入ガイドを読んで、このリポジトリに Node 版を入れて。まず --dry-run で、写すファイルと、ぶつかるファイルを見せて` | 既にある `src/`・`test/`・`package.json`・`vitest.config.ts` は触らない（キットは `.claude/`・`.github/`・`docs/`・`scripts/`・`CLAUDE.md`・`.issue-kit/version` に入り、`.gitignore` に `.issue-run/` の 1 行を足す。付録 B）。既に `CLAUDE.md` があるリポジトリでは `CLAUDE.kit.md` が横に置かれる（困ったとき） |
+| 2 | `~/work/issue-driven-kit の導入ガイドを読んで、このリポジトリに Node 版を入れて。まず --dry-run で、写すファイルと、ぶつかるファイルを見せて` | 既にある `src/`・`test/`・`package.json`・`vitest.config.ts` は触らない（キットは `.claude/`・`.github/`・`docs/`・`scripts/`・`CLAUDE.md`・`.issue-kit/config.json`・`.issue-kit/version` に入り、`.gitignore` に `.issue-run/` の 1 行を足す。付録 B）。既に `CLAUDE.md` があるリポジトリでは `CLAUDE.kit.md` が横に置かれる（困ったとき） |
 | 3 | `入れて` → `npm ci` | テストの入口 `scripts/test.mjs` が vitest を回す。見本は `engines` と `.nvmrc` が既に `22.14.0`（自分のリポジトリでは、ここでそろえる） |
 | 4 | `CLAUDE.md の守るものに、このリポジトリで変えてはいけない物を入れて` | Cloudflare Workers のリポジトリなら、テストに `@cloudflare/vitest-plugin` が要ることがある。`wrangler deploy` は、入れた設定が無人の回でも断る |
 | 5 | 手順 5 の確かめ | Mac で回す。Windows でも回せる |
