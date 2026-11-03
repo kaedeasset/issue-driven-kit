@@ -58,7 +58,8 @@ if (t.runner === 'vitest') {
   const args = t.command.slice(1);
   if (opt('--filter') !== undefined) {
     if (!t.filterArgs) fail('command で名前で絞れない（.issue-kit/config.json の test.filterArgs が無い。例 ["--filter", "DisplayName~{filter}"]）');
-    args.push(...t.filterArgs.map((s) => s.replaceAll('{filter}', opt('--filter'))));
+    // 置き換えは関数で渡す（名前の $& や $$ を置き換えの記号として読まない）
+    args.push(...t.filterArgs.map((s) => s.replaceAll('{filter}', () => opt('--filter'))));
   }
   // 起動の前後で resultDirs の .xml の一覧を比べ、新しくできた物と変わった物だけを読む（前の回の XML を数えない・消さない）
   const list = () => t.resultDirs.flatMap((d) => xmlFiles(resolve(root, d))).filter((e) => resolve(e.path) !== resolve(xml));

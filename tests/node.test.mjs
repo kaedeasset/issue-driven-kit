@@ -557,6 +557,7 @@ const cases = { pass: ['<testcase name="足せる" classname="M"/>', '<testcase 
   fail: ['<testcase name="足せる" classname="M"/>', '<testcase name="落ちる" classname="M"><failure message="x"/></testcase>'],
   zero: [], 'pass-exit1': ['<testcase name="足せる" classname="M"/>', '<testcase name="引ける" classname="M"/>'] }[mode];
 console.log('fake tool: ' + mode);
+if (flag === '--only') console.log('only: ' + only);
 if (cases) {
   const picked = flag === '--only' ? cases.filter((c) => c.includes('name="' + only + '"')) : cases;
   mkdirSync('out/raw', { recursive: true });
@@ -658,6 +659,11 @@ test('テストの入口（command）: filterArgs で名前で絞る・無けれ
     assert.equal(lastLine(r), 'Result: PASS 1/1');
     r = entry(dir, '--filter', 'どれにも当たらない名前');
     assert.match(lastLine(r), /^Result: FAIL \(0\/0/);
+    // 名前の $$ や $& をそのまま渡す（置き換えの記号として読まない）
+    r = entry(dir, '--filter', 'a$$b$&');
+    assert.match(r.stdout, /fake tool: fail/);
+    assert.match(lastLine(r), /^Result: FAIL \(0\/0/);
+    assert.ok(r.stdout.includes('only: a$$b$&'), r.stdout);
     // --file は受け付けない
     r = entry(dir, '--file', 'tool.mjs');
     assert.match(lastLine(r), /^Result: FAIL \(command では --file を使えない/);
