@@ -64,6 +64,7 @@ node scripts/issue-run/issue-run.mjs --dry-run     # 対象の Issue を見る�
 | **worktree のレーン**（レーンの一覧・所有するフォルダー・main の役割・レーンの作り方）・**朝の同期**（「レーン同期して」＝`/lane-sync`・`scripts/issue-run/sync-lanes.mjs`） | `docs/guides/working/worktree-lanes.md` |
 | **キットの設計**（決めること D1〜D12・作る順 K1〜K6・合格の条件 K-1〜K-8） | `docs/design/issue-driven-kit-basic-design.md` |
 | **無人の回の仕様の正**（2 つの版が実装する決まり） | `shared/spec/issue-run-spec.md` |
+| **適用例 3 本の元ネタ**（TypeScript・.NET・Java の要件と設計・共通の前提）と、**5 回作り直して回5で成功させる計画** | `docs/guides/working/examples/README.md`・`docs/design/issue-driven-examples-plan.md` |
 | **利用者の手順**（導入ガイド） | `shared/manuals/issue-driven-kit-install-guide.md` |
 | **生成 AI の CLI・MCP を足す・使う**（口はコマンドとファイル・無人の回で MCP を使わない・自作 MCP を作る条件） | `docs/guides/decisions/genai-cli-mcp-policy.md` |
 | GitHub（リポジトリの作り方・push・弾かれたとき） | `docs/guides/working/github-repo.md`・スキル `commit` `push` `pr` |
