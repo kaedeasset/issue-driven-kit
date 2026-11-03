@@ -664,3 +664,139 @@ test('点検（Node 版）: キットの版が新しければ OK', () => {
   assert.equal(lines.length, 1, lines.join('\n'));
   assert.match(lines[0], /^OK {3}キットの版: owner\/kit の最新 b1c2d3e と同じ/);
 });
+
+// ---- テストの入口の決まり（仕様 11 章）と、それを支える部品（設計書 test-entry-config-design.md 2.6・2.12） ----
+
+test('仕様にテストの入口の章がある', () => {
+  const spec = read(join(kit, 'shared/spec/issue-run-spec.md'));
+  assert.match(spec, /^## 11\. テストの入口/m);
+  const ch11 = spec.split(/^## 11\. テストの入口/m)[1];
+  for (const w of ['Result:', '終了コード', '0 件', '.issue-run/test-results/junit.xml', '.issue-kit/config.json', 'runner', 'resultDirs', 'filterArgs']) assert.ok(ch11.includes(w), w);
+  const ch9 = spec.split(/^## 9\. /m)[1].split(/^## 10\. /m)[0];
+  assert.match(ch9, /^\| テストの入口 \|/m);
+  assert.match(ch9, /^\| テストの入口の設定 \|/m);
+  // 表の列が崩れていない（9 章の 2 行は 3 列）
+  for (const l of ch9.split('\n').filter((x) => /^\| テストの入口/.test(x))) assert.equal(l.replace(/\\\|/g, '').split('|').length - 2, 3, l);
+});
+
+test('テストの入口の設定: 無い・読めない・形が違うなら直し方を出す', () => {
+  const ng = (text, re) => { const r = lib.parseTestConfig(text); assert.equal(r.ok, false, String(text)); assert.match(r.why, /^\.issue-kit\/config\.json /); assert.match(r.why, re, r.why); };
+  ng(null, /が無い.*例 \{/);
+  ng('{ 読めない', /JSON として読めない/);
+  ng(JSON.stringify({ issueKit: { testRunner: 'node' } }), /test の欄が無い/);
+  ng(JSON.stringify({ test: {} }), /test\.runner は vitest・node・command.*無い/);
+  ng(JSON.stringify({ test: { runner: 'jest' } }), /test\.runner.*"jest"/);
+  ng(JSON.stringify({ test: { runner: 'node' } }), /test\.files が無い/);
+  ng(JSON.stringify({ test: { runner: 'node', files: 'tests/*.test.mjs' } }), /test\.files が無い/);
+  ng(JSON.stringify({ test: { runner: 'command', command: [], resultDirs: ['r'] } }), /test\.command が無い/);
+  ng(JSON.stringify({ test: { runner: 'command', command: ['dotnet', 'test'] } }), /test\.resultDirs が無い/);
+  ng(JSON.stringify({ test: { runner: 'command', command: ['dotnet'], resultDirs: ['r'], filterArgs: '--filter' } }), /test\.filterArgs は文字列の配列/);
+  const ok = (cfg) => { const r = lib.parseTestConfig(JSON.stringify(cfg)); assert.equal(r.ok, true, r.why); assert.deepEqual(r.config, cfg); };
+  ok({ test: { runner: 'vitest' } });
+  ok({ test: { runner: 'node', files: ['tests/*.test.mjs'] } });
+  ok({ test: { runner: 'command', command: ['dotnet', 'test'], resultDirs: ['r'], filterArgs: ['--filter', 'DisplayName~{filter}'] } });
+  assert.equal(lib.parseTestConfig('\uFEFF{ "test": { "runner": "vitest" } }').ok, true, 'BOM つきも読む');
+});
+
+test('JUnit の数え方: skipped を数えず failure と error を落ちたとする', () => {
+  const xml = `<?xml version="1.0"?><testsuites tests="99" failures="0"><testsuite name="s">
+<testcase name="通る" classname="c"/>
+<testcase name="通る 2" classname="c"></testcase>
+<testcase name="落ちる"><failure message="x">x</failure></testcase>
+<testcase name="壊れる"><error message="y"/></testcase>
+<testcase name="飛ばす"><skipped/></testcase>
+</testsuite></testsuites>`;
+  assert.deepEqual(lib.countJunit(xml), { ran: 4, bad: 2 });
+  assert.deepEqual(lib.countJunit(''), { ran: 0, bad: 0 });
+  assert.deepEqual(lib.countJunit('<testsuites tests="3"></testsuites>'), { ran: 0, bad: 0 }, '属性に頼らない');
+  // node --test の「ファイルの名前の testcase」を外せる
+  const withFile = `${xml}<testcase name="tests/a.test.mjs"/>`;
+  assert.deepEqual(lib.countJunit(withFile, { isFileEntry: (n) => n === 'tests/a.test.mjs' }), { ran: 4, bad: 2 });
+  assert.deepEqual(lib.countJunit(withFile), { ran: 5, bad: 2 });
+});
+
+test('JUnit の数え方: CDATA と system-out の中の文字で数えを誤らない', () => {
+  const xml = `<testsuites><testsuite name="s">
+<testcase name="a"><system-out><![CDATA[log </testcase><testcase name="偽"><failure>]]></system-out></testcase>
+<testcase name="b"><system-err>&lt;failure&gt; <failure> <skipped/> </testcase></system-err></testcase>
+<testcase name="c"><!-- <failure> --></testcase>
+<testcase name="d"><failure><![CDATA[expected </testcase> <error>]]></failure></testcase>
+</testsuite></testsuites>`;
+  assert.deepEqual(lib.countJunit(xml), { ran: 4, bad: 1 });
+});
+
+test('JUnit をまとめる: testcase をそのまま写す', () => {
+  const a = `<?xml version="1.0" encoding="UTF-8"?>\n<testsuites><testsuite name="A" tests="2">
+<testcase name="名前 &amp; 記号" classname="X.Y" time="0.1"/>
+<testcase name="落ちる" classname="X.Y"><failure message="m"><![CDATA[a </testcase> b]]></failure><system-out>out</system-out></testcase>
+</testsuite></testsuites>`;
+  const b = '<testsuite name="B"><testsuite name="入れ子"><testcase name="飛ばす"><skipped/></testcase></testsuite></testsuite>';
+  const merged = lib.mergeJunit([{ name: 'raw/a&<"b>.xml', text: a }, { name: 'b.xml', text: b }]);
+  assert.match(merged, /^<\?xml version="1.0" encoding="UTF-8"\?>\n<testsuites>\n/);
+  assert.ok(merged.includes('<testsuite name="raw/a&amp;&lt;&quot;b&gt;.xml">'), merged);
+  assert.ok(merged.includes('<testcase name="名前 &amp; 記号" classname="X.Y" time="0.1"/>'), merged);
+  assert.ok(merged.includes('<testcase name="落ちる" classname="X.Y"><failure message="m"><![CDATA[a </testcase> b]]></failure><system-out>out</system-out></testcase>'), merged);
+  assert.ok(merged.includes('<testcase name="飛ばす"><skipped/></testcase>'), merged);
+  assert.equal((merged.match(/<testsuite /g) ?? []).length, 2, '入れ子は写さない');
+  assert.deepEqual(lib.countJunit(merged), { ran: 2, bad: 1 });
+  assert.equal(lib.mergeJunit([]), '<?xml version="1.0" encoding="UTF-8"?>\n<testsuites>\n</testsuites>\n');
+});
+
+test('新しい結果の選び方: できた物と変わった物だけを選ぶ', () => {
+  const before = [
+    { path: 'r/same.xml', mtimeMs: 100, size: 10 },
+    { path: 'r/touched.xml', mtimeMs: 100, size: 10 },
+    { path: 'r/grown.xml', mtimeMs: 100, size: 10 },
+    { path: 'r/gone.xml', mtimeMs: 100, size: 10 },
+  ];
+  const after = [
+    { path: 'r/same.xml', mtimeMs: 100, size: 10 },
+    { path: 'r/touched.xml', mtimeMs: 200, size: 10 },
+    { path: 'r/grown.xml', mtimeMs: 100, size: 12 },
+    { path: 'r/new.xml', mtimeMs: 50, size: 10 },
+  ];
+  assert.deepEqual(lib.pickNewResults(before, after), ['r/touched.xml', 'r/grown.xml', 'r/new.xml']);
+  assert.equal(lib.pickNewResults([], after).length, 4);
+  assert.deepEqual(lib.pickNewResults(after, after), [], 'すぐに回し直して何も書かなければ何も選ばない');
+});
+
+test('指示文の確かめの行: runner に合わせた名前を出す', () => {
+  assert.equal(lib.testRunnerLabel({ test: { runner: 'vitest' } }), 'vitest');
+  assert.equal(lib.testRunnerLabel({ test: { runner: 'node', files: ['tests/*.test.mjs'] } }), 'node --test');
+  assert.equal(lib.testRunnerLabel({ test: { runner: 'command', command: ['dotnet', 'test'], resultDirs: ['r'] } }), 'dotnet');
+  assert.equal(lib.testRunnerLabel({ test: { runner: 'command', command: ['tools\\mvnw.cmd', '-q', 'verify'], resultDirs: ['r'] } }), 'mvnw.cmd');
+  assert.equal(lib.testRunnerLabel({ test: { runner: 'command', command: ['./mvnw', 'verify'], resultDirs: ['r'] } }), 'mvnw');
+});
+
+test('確認コマンドの手伝い: 長い出力でも Result 行を読む', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'kit-check-lib-'));
+  try {
+    mkdirSync(join(dir, 'scripts', 'issue-run'), { recursive: true });
+    cpSync(join(nodeRoot, 'files/scripts/issue-run/check-lib.mjs'), join(dir, 'scripts/issue-run/check-lib.mjs'));
+    // 偽のテストの入口：2MB を出してから Result: PASS（spawnSync の既定の受け取りは 1MB）
+    writeFileSync(join(dir, 'scripts', 'test.mjs'), "const line = 'x'.repeat(1023) + '\\n';\nfor (let i = 0; i < 2048; i++) process.stdout.write(line);\nconsole.log('Result: PASS 1/1');\n");
+    const r = node(['--input-type=module', '-e', "import { runTests, done } from './scripts/issue-run/check-lib.mjs'; runTests(); done();"], { cwd: dir });
+    assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /OK {2}テスト 全部: Result: PASS 1\/1/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（command）: cmd.exe を通す道具の引数に % があれば起動しない', { skip: process.platform !== 'win32' && 'Windows だけ' }, async () => {
+  const proc = await import('../editions/node/files/scripts/issue-run/proc.mjs');
+  const dir = mkdtempSync(join(tmpdir(), 'kit-cmd-'));
+  try {
+    // 起動されたら印のファイルを書く .cmd
+    writeFileSync(join(dir, 'tool.cmd'), '@echo off\r\necho ran> "%~dp0ran.txt"\r\n');
+    for (const bad of ['50%', '%PATH%', 'a"b']) {
+      const r = proc.runInherit('tool.cmd', [bad], { cwd: dir });
+      assert.equal(r.started, false, bad);
+      assert.notEqual(r.code, 0, bad);
+      assert.match(r.error, /cmd\.exe を通す道具の引数に % と " は使えない/);
+      assert.equal(existsSync(join(dir, 'ran.txt')), false, `${bad} で起動した`);
+    }
+    // % が無ければ起動する（作業場所の直下の .cmd を名前で）
+    const ok = proc.runInherit('tool.cmd', ['a b'], { cwd: dir });
+    assert.equal(ok.code, 0, ok.error);
+    assert.equal(existsSync(join(dir, 'ran.txt')), true, '起動していない');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

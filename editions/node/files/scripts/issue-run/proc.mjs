@@ -1,7 +1,7 @@
 // proc.mjs — 子のプロセスを Windows と Mac で同じに起動する部品（Node 版）。シェルに文字列を組み立てて渡さない。
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
-import { join, delimiter, extname } from 'node:path';
+import { join, delimiter, extname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 
 const isWin = process.platform === 'win32';
@@ -51,6 +51,21 @@ export function run(name, args, { cwd, input, env } = {}) {
     windowsVerbatimArguments: inv.verbatim, maxBuffer: 256 * 1024 * 1024,
   });
   return { code: r.status ?? (r.error ? 127 : 1), stdout: r.stdout ?? '', stderr: (r.stderr ?? '') + (r.error ? String(r.error.message) : '') };
+}
+
+// 出力を画面へそのまま流して起動する（テストの入口の command。仕様 11.2）。env は上に重ねず、渡した物をそのまま使う（無ければ process.env）。
+// name はパス（作業場所 cwd から見た相対でもよい）か PATH の名前。cmd.exe を通すときは、引数に % か " があれば起動せずに返す
+export function runInherit(name, args, { cwd, env } = {}) {
+  let cmd;
+  if (name === 'node') cmd = process.execPath;
+  else if (/[\\/]/.test(name) || existsSync(resolve(cwd ?? '.', name))) cmd = resolve(cwd ?? '.', name);
+  else cmd = resolveCmd(name) ?? name;
+  const inv = invocation(cmd, args);
+  if (inv.verbatim && [cmd, ...args].some((a) => /[%"]/.test(String(a)))) {
+    return { code: 1, error: 'cmd.exe を通す道具の引数に % と " は使えない（cmd.exe が % を展開し、引用符が崩れる）', started: false };
+  }
+  const r = spawnSync(inv.file, inv.args, { cwd, env: env ?? process.env, stdio: 'inherit', windowsVerbatimArguments: inv.verbatim });
+  return { code: r.status ?? (r.error ? 127 : 1), error: r.error ? String(r.error.message) : '', started: !r.error };
 }
 
 // 時間の上限つきで起動する（無人の回の claude -p）。時間切れならプロセスの木ごと止める

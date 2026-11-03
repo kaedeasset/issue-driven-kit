@@ -11,7 +11,7 @@ project: issue-driven-kit
 
 Unity 版（`Scripts/issue-run.ps1`・PowerShell）と Node 版（`scripts/issue-run/issue-run.mjs`・Node.js）は、**この文書の決まりを実装する**。決まりを変えるときは、まずこの文書を書き換え、次に両方の実装と見本（`shared/fixtures/`）を直す。
 
-元にしたのは、KaedeScapeBuii の `Scripts/issue-run.ps1`（2026-10-23 の版。Issue 13 件を合格させた実物）。版ごとの違いは 9 章にだけ書く。
+元にしたのは、KaedeScapeBuii の `Scripts/issue-run.ps1`（2026-10-23 の版。Issue 13 件を合格させた実物）。版ごとの違いは 9 章にだけ書く（テストの入口の Node 版だけの細かい決まりは 11 章）。
 
 ---
 
@@ -252,6 +252,8 @@ Claude を起動しない。対象の一覧と、各 Issue の「合格の条件
 | 脚本の名前（コメントの頭） | `issue-run.ps1` | `issue-run.mjs` |
 | ログの置き場 | `Logs/IssueRun/` | `.issue-run/logs/` |
 | 記録の置き場 | `Docs/Reports/` | `docs/reports/` |
+| テストの入口 | `Scripts/unity-test.ps1`。`Result: PASS\|FAIL\|BLOCKED  <要約>`。BLOCKED は 3 | `node scripts/test.mjs`。`Result: PASS <n>/<n>` か `Result: FAIL (<理由>)` |
+| テストの入口の設定 | 引数（`-TestPlatform` など） | `.issue-kit/config.json`（11 章）。実行用の設定の deny に `.issue-kit/**` の `Edit`・`Write` を入れ、無人の回に書き換えさせない |
 
 ---
 
@@ -265,6 +267,57 @@ Claude を起動しない。対象の一覧と、各 Issue の「合格の条件
 | `shared/fixtures/issues-node/` | Node 版（確認コマンドは js） | rpg-online-cloudflare の Issue #1〜#4（本文はそのまま。`tracked` はそのリポジトリの `git ls-files` から） |
 
 両方の版が、自分の版の見本を答えどおりに読む。ほかの版の見本では、9 章の塊が違うので確認コマンドは無い（空）と読み、条件の行と前提は答えどおりに読む（K-3 を両方向に）。
+
+---
+
+## 11. テストの入口
+
+どちらの版も、テストの入口は次の決まりを守る。Issue の確認コマンド（Node 版は `check-lib.mjs` の `runTests`・`requireTests`）は、この決まりだけを当てにして合否を読む。
+
+| 決まり | 中身 |
+|---|---|
+| 起動 | 作業場所の直下で、決まったコマンド 1 つで全部のテストを回す（Unity 版 `Scripts/unity-test.ps1`・Node 版 `node scripts/test.mjs`） |
+| 最後の行 | 出力の最後の行が `Result: ` で始まり、次の語が `PASS`・`FAIL`（Unity 版は `BLOCKED` も）。合否はこの行と終了コードだけで読む |
+| 終了コード | PASS は 0、FAIL は 1（Unity 版の BLOCKED は 3） |
+| 0 件 | 回ったテストが 0 件なら FAIL（名前の打ち間違い・テストの消し忘れで合格にしない） |
+| 結果の XML（Node 版） | `.issue-run/test-results/junit.xml` に、JUnit の形（`<testcase name="…">` と、落ちたら `<failure>` か `<error>`、飛ばしたら `<skipped>`）で置く。`check-lib.mjs` の `requireTests` はこれを読む。走らせるたびに作り直す |
+
+### 11.1 数え方（Node 版）
+
+道具が何であっても、結果の XML の `<testcase>` を 1 つずつ数える（`<testsuites>` の属性に頼らない）。
+
+| 数える物 | 決め方 |
+|---|---|
+| 回った数 `ran` | `<testcase>` の数から、中に `<skipped` がある物を引く。`node` のときは「ファイルの名前の testcase」も引く |
+| 落ちた数 `bad` | 中に `<failure` か `<error` がある `<testcase>` の数 |
+| 判定 | `ran` が 0 件なら `Result: FAIL (0/0（テストが 0 件）)`。`bad` が 1 以上か、道具の終了コードが 0 でなければ `Result: FAIL (<ran-bad>/<ran>)`。それ以外は `Result: PASS <ran>/<ran>` |
+
+数える前に、CDATA（`<![CDATA[…]]>`）と `<system-out>`・`<system-err>` の中を見ないようにする（中の `</testcase>`・`<failure` の文字で数えを誤らない）。
+
+### 11.2 設定 `.issue-kit/config.json`（Node 版）
+
+```json
+{
+  "test": {
+    "runner": "command",
+    "command": ["dotnet", "test", "--logger", "junit;LogFilePath=.issue-run/test-results/raw/{assembly}.xml"],
+    "resultDirs": [".issue-run/test-results/raw"],
+    "filterArgs": ["--filter", "DisplayName~{filter}"]
+  }
+}
+```
+
+| 欄 | 要るとき | 形 | 意味 |
+|---|---|---|---|
+| `test.runner` | いつも | `"vitest"`・`"node"`・`"command"` | どの道具で回すか。既定の値は無い（書いていなければ FAIL） |
+| `test.files` | `node` | 文字列の配列（例 `["tests/*.test.mjs"]`） | `node --test` に渡すファイル |
+| `test.command` | `command` | 文字列の配列（先頭が道具、残りが引数）。シェルを通さない | 全部のテストを回すコマンド |
+| `test.resultDirs` | `command` | 作業場所の直下から見たフォルダーの配列 | コマンドが JUnit の XML を書くフォルダー。下の階層まで見て、拡張子 `.xml` の物を読む |
+| `test.filterArgs` | 任意（`command`） | 文字列の配列。`{filter}` を `--filter` の値に置き換える | `--filter` のときに `command` の後ろに足す引数。無ければ `--filter` は FAIL |
+
+- 設定が無い・読めない・形が違うときは、直し方を書いて `Result: FAIL`。`package.json` は読まない。
+- `command` は、起動の前後で `resultDirs` の XML の一覧（パス・更新時刻・大きさ）を比べ、新しくできた物と、更新時刻か大きさが変わった物だけを読む。前の回の XML は読まず、消さない。読んだ `<testcase>` はそのまま 1 つの `junit.xml` にまとめる。
+- Windows で `command` の先頭が `.cmd`・`.bat` なら `cmd.exe` を通して起動する。そのとき引数に `%` か `"` があれば起動せずに FAIL（`cmd.exe` が展開し、引用符が崩れるため）。
 
 ---
 

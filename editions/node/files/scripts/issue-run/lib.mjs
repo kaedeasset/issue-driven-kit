@@ -195,6 +195,92 @@ export function issuePrompt(templateText, { repo, number, branch, state, report,
     .replaceAll('{{WORKSPACE_STATE}}', state).replaceAll('{{REPORT}}', report).replaceAll('{{PROTECTED}}', prot);
 }
 
+// 仕様 11.2：テストの入口の設定 .issue-kit/config.json の形を確かめる。text は中身の文字列（無ければ null）。
+// 読めれば { ok: true, config }、だめなら { ok: false, why }（why は直し方を含む 1 行）
+export const TEST_RUNNERS = ['vitest', 'node', 'command'];
+const CONFIG_EXAMPLE = '例 { "test": { "runner": "vitest" } }';
+export function parseTestConfig(text) {
+  const bad = (why) => ({ ok: false, why: `.issue-kit/config.json ${why}` });
+  if (text == null) return bad(`が無い。テストの道具を書く（${CONFIG_EXAMPLE}）`);
+  let config;
+  try { config = JSON.parse(String(text).replace(/^﻿/, '')); } catch (e) { return bad(`が JSON として読めない（${String(e?.message ?? e).split('\n')[0]}）。${CONFIG_EXAMPLE} の形に直す`); }
+  const t = config?.test;
+  if (!t || typeof t !== 'object' || Array.isArray(t)) return bad(`に test の欄が無い（${CONFIG_EXAMPLE}）`);
+  if (!TEST_RUNNERS.includes(t.runner)) return bad(`の test.runner は ${TEST_RUNNERS.join('・')} のどれか（いま: ${t.runner === undefined ? '無い' : JSON.stringify(t.runner)}）`);
+  const strings = (v, { empty = false } = {}) => Array.isArray(v) && (empty || v.length > 0) && v.every((s) => typeof s === 'string' && s.length > 0);
+  if (t.runner === 'node' && !strings(t.files)) return bad('の test.files が無い（runner が node のとき、node --test で回すファイルの配列。例 ["tests/*.test.mjs"]）');
+  if (t.runner === 'command') {
+    if (!strings(t.command)) return bad('の test.command が無い（runner が command のとき、先頭が道具で残りが引数の配列。例 ["dotnet", "test"]）');
+    if (!strings(t.resultDirs)) return bad('の test.resultDirs が無い（runner が command のとき、JUnit の XML が出るフォルダーの配列）');
+    if (t.filterArgs !== undefined && !strings(t.filterArgs)) return bad('の test.filterArgs は文字列の配列（{filter} を名前に置き換える。例 ["--filter", "DisplayName~{filter}"]）');
+  }
+  return { ok: true, config };
+}
+
+// 仕様 11.1：JUnit の XML の、数えるときに中を見ない所（CDATA・system-out・system-err・コメント）を印に置き換える。
+// 戻り値の restore(s) で印を元の文字に戻す（まとめるときは元のまま写すため）
+function maskJunit(text) {
+  const saved = [];
+  const keep = (m) => { saved.push(m); return `\u0000${saved.length - 1}\u0000`; };
+  const masked = String(text ?? '')
+    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, keep)
+    .replace(/<!--[\s\S]*?-->/g, keep)
+    .replace(/(<system-(?:out|err)\b[^>]*>)([\s\S]*?)(<\/system-(?:out|err)>)/g, (_, a, body, b) => a + keep(body) + b);
+  const restore = (s) => {
+    let out = s;
+    while (/\u0000\d+\u0000/.test(out)) out = out.replace(/\u0000(\d+)\u0000/g, (_, i) => saved[Number(i)]);
+    return out;
+  };
+  return { masked, restore };
+}
+
+const TESTCASE = /<testcase\b([^>]*?)(\/>|>([\s\S]*?)<\/testcase>)/g;
+const unescXml = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+const escXml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// 仕様 11.1：testcase を 1 つずつ数える。skipped は回った数に入れず、failure か error があれば落ちたとする。
+// isFileEntry(name) が真の testcase（node --test の「ファイルの名前の testcase」）は数えない
+export function countJunit(xmlText, { isFileEntry = () => false } = {}) {
+  const { masked } = maskJunit(xmlText);
+  let ran = 0, bad = 0;
+  for (const m of masked.matchAll(TESTCASE)) {
+    const name = unescXml(/\sname="([^"]*)"/.exec(m[1])?.[1] ?? '');
+    if (isFileEntry(name)) continue;
+    const body = m[3] ?? '';
+    if (/<skipped\b/.test(body)) continue;
+    ran++;
+    if (/<(failure|error)\b/.test(body)) bad++;
+  }
+  return { ran, bad };
+}
+
+// 仕様 11.2：集めた XML（[{ name, text }]）の testcase を、属性も中身も変えずに 1 つの XML にまとめる。name は testsuite の名前
+export function mergeJunit(files) {
+  const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<testsuites>'];
+  for (const f of files ?? []) {
+    const { masked, restore } = maskJunit(f.text);
+    lines.push(`  <testsuite name="${escXml(f.name ?? '')}">`);
+    for (const m of masked.matchAll(TESTCASE)) lines.push(`    ${restore(m[0])}`);
+    lines.push('  </testsuite>');
+  }
+  lines.push('</testsuites>');
+  return lines.join('\n') + '\n';
+}
+
+// 仕様 11.2：起動の前後の XML の一覧（[{ path, mtimeMs, size }]）を比べ、新しくできた物と、更新時刻か大きさが変わった物のパスを返す
+export function pickNewResults(before, after) {
+  const old = new Map((before ?? []).map((e) => [e.path, e]));
+  return (after ?? []).filter((e) => { const o = old.get(e.path); return !o || o.mtimeMs !== e.mtimeMs || o.size !== e.size; }).map((e) => e.path);
+}
+
+// 指示文の確かめの行に出す道具の名前（vitest・node --test・command の先頭の名前）。config は parseTestConfig の config
+export function testRunnerLabel(config) {
+  const t = config?.test ?? {};
+  if (t.runner === 'node') return 'node --test';
+  if (t.runner === 'command') return String(t.command?.[0] ?? 'command').replaceAll('\\', '/').split('/').pop();
+  return 'vitest';
+}
+
 // 指示文の作業場所の行（仕様 9 章）。確かめの行は package.json の issueKit.testRunner に合わせる（無い・読めなければ vitest。test.mjs と同じ）
 export function testRunnerOf(pkgText) {
   if (pkgText == null) return 'vitest';
