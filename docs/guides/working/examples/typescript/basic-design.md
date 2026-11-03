@@ -4,7 +4,7 @@
 |---|---|
 | 文書ID | TS-BD-001 |
 | 段 | **上流**（受注の後に人が書き、受注先と合意した文書という想定。共通 §1.2）。生成 AI 駆動の段（詳細設計・実装・テスト）の入力で、その段の中では変えない |
-| 版/日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：Docker Compose をやめ PostgreSQL 17 を Windows に入れておく・テストの DB の決まり・1.1 に使う技術と版を足した・11 章に詳細設計の単位と決めた方式を書き、Issue の並びは issues/plan.md へ出した） |
+| 版/日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：Docker Compose をやめ PostgreSQL 17 を Windows に入れておく・テストの DB の決まり・1.1 に使う技術と版を足した・11 章に詳細設計の単位と決めた方式を書き、Issue の並びは案件のリポジトリで作る形にした） |
 | 対象 | 回ごとに `issue-driven-example-typescript-r<回>`（新規リポジトリ） |
 | 対応要件 | [`requirements.md`](requirements.md) TS-F / TS-BR / TS-AC |
 | 共通の前提 | キットの `docs/guides/working/examples/README.md`（以下「共通 §n」） |
@@ -65,9 +65,8 @@ issue-driven-example-typescript/
 │   ├── integration/
 │   └── e2e/
 ├── docs/
-│   ├── requirements.md
-│   ├── basic-design.md
-│   └── decisions/
+│   ├── inspecs/<年>/<月>/   # requirements.md・basic-design.md（上流から受け取る。Claude は書き換えない）
+│   └── guides/working/      # detailed-design/（詳細設計）・issue-plan.md（Issue の並び）
 ├── scripts/                 # kit導入後の test.mjs / issue-run/
 ├── .github/workflows/
 ├── .env.example             # 接続文字列の見本（実の値は .env。コミットしない）
@@ -206,19 +205,19 @@ JSONはcamelCase、日付はISO8601、エラーは `{code,message,details,reques
 2. 仕様・テスト・見本の変更は、実装の Issue と別の Issue（またはコミット）で先に固め、実装の Issue では守るファイルにする（共通 §4.2）。
 3. 対象の Issue に `claude-run` を付ける。閉じるのは人。結果はアプリの `docs/reports/` に残る。
 4. 夜は `node scripts/issue-run/issue-run.mjs --round-minutes 60 --max-rounds 2`（共通 §4.3）。
-5. Issue の並び（夜ごとの表）はこの文書に書かない。[`issues/plan.md`](issues/plan.md) が正（回ごとに見直す段取りのため）。
+5. Issue の並び（夜ごとの表）はこの文書に書かない。案件のリポジトリで、要件定義書とこの文書から Claude Code が作る（共通 §4.4）。
 
 ### 11.2 詳細設計の単位
 
 この基本設計だけで実装の Issue が書ける部分（テストの入口・スキーマ・シード・ドメイン）は、詳細設計を作らない。ほかは、下の単位ごとに**夜の「設計書を書く」Issue**（D 番号）で、実装の 1 晩前に詳細設計を書かせ、人が朝に読んで直す（共通 §3.2）。形は共通 §3.3。
 
-| 単位 | 回のリポジトリでのファイル | 中身（API・画面） | 受け持つ要件 |
+| 単位 | 案件のリポジトリでのファイル | 中身（API・画面） | 受け持つ要件 |
 |---|---|---|---|
-| DD-01 共通と認証 | `docs/design/dd-01-common-auth.md` | エラーの `code` の一覧・ページング・ログ・ヘルスチェック・ログインとログアウト・セッション・ロールのガード・BFF・CSRF・ログイン画面 | TS-F-01・02・13、TS-BR-10、TS-AC-07・11 |
-| DD-02 マスターと在庫 | `docs/design/dd-02-masters.md` | 顧客・商品・在庫の調整の API と画面（TS-UI-03・04） | TS-F-03〜05・11、TS-BR-09、TS-AC-12 |
-| DD-03 受注 | `docs/design/dd-03-orders.md` | 受注の下書き・確定・取消・同時更新の API と画面（TS-UI-05） | TS-F-06〜08、TS-BR-02〜06・08、TS-AC-01〜04・08 |
-| DD-04 請求・監査・ダッシュボード | `docs/design/dd-04-invoices-audit.md` | 請求書の発行と照会・印刷向けの HTML・監査ログ・ダッシュボード（TS-UI-02・06・07） | TS-F-09・10、TS-BR-07、TS-AC-05・06・09 |
-| DD-05 E2E・性能・運用 | `docs/design/dd-05-e2e-ops.md` | E2E のシナリオ・2 回続けて回す確かめ・性能の測り方・README と運用の文書の目次 | TS-AC-10、§7 の性能・運用 |
+| DD-01 共通と認証 | `docs/guides/working/detailed-design/dd-01-common-auth.md` | エラーの `code` の一覧・ページング・ログ・ヘルスチェック・ログインとログアウト・セッション・ロールのガード・BFF・CSRF・ログイン画面 | TS-F-01・02・13、TS-BR-10、TS-AC-07・11 |
+| DD-02 マスターと在庫 | `docs/guides/working/detailed-design/dd-02-masters.md` | 顧客・商品・在庫の調整の API と画面（TS-UI-03・04） | TS-F-03〜05・11、TS-BR-09、TS-AC-12 |
+| DD-03 受注 | `docs/guides/working/detailed-design/dd-03-orders.md` | 受注の下書き・確定・取消・同時更新の API と画面（TS-UI-05） | TS-F-06〜08、TS-BR-02〜06・08、TS-AC-01〜04・08 |
+| DD-04 請求・監査・ダッシュボード | `docs/guides/working/detailed-design/dd-04-invoices-audit.md` | 請求書の発行と照会・印刷向けの HTML・監査ログ・ダッシュボード（TS-UI-02・06・07） | TS-F-09・10、TS-BR-07、TS-AC-05・06・09 |
+| DD-05 E2E・性能・運用 | `docs/guides/working/detailed-design/dd-05-e2e-ops.md` | E2E のシナリオ・2 回続けて回す確かめ・性能の測り方・README と運用の文書の目次 | TS-AC-10、§7 の性能・運用 |
 
 ### 11.3 決めた方式（詳細設計の前に決めておく）
 

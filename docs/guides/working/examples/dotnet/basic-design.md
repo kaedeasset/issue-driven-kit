@@ -4,7 +4,7 @@
 |---|---|
 | 文書ID | NET-BD-001 |
 | 段 | **上流**（受注の後に人が書き、受注先と合意した文書という想定。共通 §1.2）。生成 AI 駆動の段（詳細設計・実装・テスト）の入力で、その段の中では変えない |
-| 版 / 日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：PostgreSQL 17 を Windows に入れておく・.NET 版のキットを作らず Node 版を広げて当てる（8 章）・1.1 に使う技術と版を足した・8 章に詳細設計の単位と決めた方式を書き、Issue の並びは issues/plan.md へ出した） |
+| 版 / 日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：PostgreSQL 17 を Windows に入れておく・.NET 版のキットを作らず Node 版を広げて当てる（8 章）・1.1 に使う技術と版を足した・8 章に詳細設計の単位と決めた方式を書き、Issue の並びは案件のリポジトリで作る形にした） |
 | 対象リポジトリ | 回ごとに `issue-driven-example-dotnet-r<回>`（新規作成） |
 | 対応要件 | [`requirements.md`](requirements.md) NET-F/NET-BR/NET-AC |
 | 共通の前提 | キットの `docs/guides/working/examples/README.md`（以下「共通 §n」） |
@@ -67,9 +67,9 @@ issue-driven-example-dotnet/
 │   ├── SalesFlow.Desktop.ViewModel.Tests/
 │   └── SalesFlow.Desktop.UiSmoke/      # Windows対話実行環境で実行
 ├── database/seed/
-├── docs/requirements.md
-├── docs/basic-design.md
-├── docs/decisions/
+├── docs/inspecs/<年>/<月>/requirements.md   # 上流から受け取る（人の文書。Claude は書き換えない）
+├── docs/inspecs/<年>/<月>/basic-design.md   # 同じ
+├── docs/guides/working/               # detailed-design/（詳細設計）・issue-plan.md（Issue の並び）
 ├── scripts/                            # キットの Node 版（test.mjs・issue-run/）
 ├── .github/workflows/
 ├── package.json                        # 依存なし。キットの issueKit の欄だけ
@@ -237,19 +237,19 @@ sequenceDiagram
 
 ### 8.2 詳細設計の単位
 
-Issue の並び（夜ごとの表）はこの文書に書かない。[`issues/plan.md`](issues/plan.md) が正（回ごとに見直す段取りのため）。
+Issue の並び（夜ごとの表）はこの文書に書かない。案件のリポジトリで、要件定義書とこの文書から Claude Code が作る（共通 §4.4）。
 
 この基本設計だけで実装の Issue が書ける部分（テストの入口・ドメイン・スキーマ・シード）は、詳細設計を作らない。ほかは、下の単位ごとに**夜の「設計書を書く」Issue**（D 番号）で、実装の 1 晩前に詳細設計を書かせ、人が朝に読んで直す（共通 §3.2）。形は共通 §3.3。
 
-| 単位 | 回のリポジトリでのファイル | 中身（API・画面） | 受け持つ要件 |
+| 単位 | 案件のリポジトリでのファイル | 中身（API・画面） | 受け持つ要件 |
 |---|---|---|---|
-| DD-01 API の共通と認証 | `docs/design/dd-01-api-common-auth.md` | エラーの `code` の一覧・requestId・ログ・`/health/ready`・ロールの判定・ログイン・トークンの更新と失効・OpenAPI の契約の出し方 | NET-F-01・02・14、NET-BR-09、NET-AC-08・14 |
-| DD-02 デスクトップの土台 | `docs/design/dd-02-desktop-shell.md` | Shell・画面の移動・ViewModel の状態（4.1）・API の呼び出し・サインインの画面・資格情報の保持・テストのしかた（ViewModel の単体） | NET-UI-01・02、NET-F-11 |
-| DD-03 マスターと在庫 | `docs/design/dd-03-masters.md` | 顧客・商品・在庫の調整の API と画面 | NET-F-03〜05、NET-BR-01・07、NET-UI-03・04 |
-| DD-04 受注 | `docs/design/dd-04-orders.md` | 受注の下書き・確定・取消・同時更新の API と、明細のグリッドの画面 | NET-F-06・07、NET-BR-02〜05・07、NET-AC-01〜04・07 |
-| DD-05 請求と PDF | `docs/design/dd-05-invoices-pdf.md` | 請求書の発行・照会・PDF の中身と置き方・印刷の起動 | NET-F-08・09、NET-BR-06・10、NET-AC-05・06・11 |
-| DD-06 CSV | `docs/design/dd-06-csv.md` | 取り込み（preview・commit・ハッシュ）・受注一覧の書き出し・画面 | NET-F-10、NET-BR-08、NET-AC-09・10 |
-| DD-07 監査・ホーム・配布 | `docs/design/dd-07-audit-release.md` | 監査ログの API と画面・ホーム・画面のスモークテストの道具と項目・MSIX・README の目次 | NET-F-12〜14、NET-AC-12・13・15 |
+| DD-01 API の共通と認証 | `docs/guides/working/detailed-design/dd-01-api-common-auth.md` | エラーの `code` の一覧・requestId・ログ・`/health/ready`・ロールの判定・ログイン・トークンの更新と失効・OpenAPI の契約の出し方 | NET-F-01・02・14、NET-BR-09、NET-AC-08・14 |
+| DD-02 デスクトップの土台 | `docs/guides/working/detailed-design/dd-02-desktop-shell.md` | Shell・画面の移動・ViewModel の状態（4.1）・API の呼び出し・サインインの画面・資格情報の保持・テストのしかた（ViewModel の単体） | NET-UI-01・02、NET-F-11 |
+| DD-03 マスターと在庫 | `docs/guides/working/detailed-design/dd-03-masters.md` | 顧客・商品・在庫の調整の API と画面 | NET-F-03〜05、NET-BR-01・07、NET-UI-03・04 |
+| DD-04 受注 | `docs/guides/working/detailed-design/dd-04-orders.md` | 受注の下書き・確定・取消・同時更新の API と、明細のグリッドの画面 | NET-F-06・07、NET-BR-02〜05・07、NET-AC-01〜04・07 |
+| DD-05 請求と PDF | `docs/guides/working/detailed-design/dd-05-invoices-pdf.md` | 請求書の発行・照会・PDF の中身と置き方・印刷の起動 | NET-F-08・09、NET-BR-06・10、NET-AC-05・06・11 |
+| DD-06 CSV | `docs/guides/working/detailed-design/dd-06-csv.md` | 取り込み（preview・commit・ハッシュ）・受注一覧の書き出し・画面 | NET-F-10、NET-BR-08、NET-AC-09・10 |
+| DD-07 監査・ホーム・配布 | `docs/guides/working/detailed-design/dd-07-audit-release.md` | 監査ログの API と画面・ホーム・画面のスモークテストの道具と項目・MSIX・README の目次 | NET-F-12〜14、NET-AC-12・13・15 |
 
 ### 8.3 決めた方式（詳細設計の前に決めておく）
 

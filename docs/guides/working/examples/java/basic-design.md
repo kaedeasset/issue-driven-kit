@@ -4,7 +4,7 @@
 |---|---|
 | 文書ID | JAVA-BD-001 |
 | 段 | **上流**（受注の後に人が書き、受注先と合意した文書という想定。共通 §1.2）。生成 AI 駆動の段（詳細設計・実装・テスト）の入力で、その段の中では変えない |
-| 版 / 日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：Docker Compose と Testcontainers をやめ PostgreSQL 17 を Windows に入れておく・Java 版のキットを作らず Node 版を広げて当てる（8 章）・1.1 に使う技術と版を足した・8 章に詳細設計の単位と決めた方式を書き、Issue の並びは issues/plan.md へ出した） |
+| 版 / 日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：Docker Compose と Testcontainers をやめ PostgreSQL 17 を Windows に入れておく・Java 版のキットを作らず Node 版を広げて当てる（8 章）・1.1 に使う技術と版を足した・8 章に詳細設計の単位と決めた方式を書き、Issue の並びは案件のリポジトリで作る形にした） |
 | 対象リポジトリ | 回ごとに `issue-driven-example-java-r<回>`（新規作成） |
 | 対応要件 | [`requirements.md`](requirements.md) JAVA-F / JAVA-BR / JAVA-AC |
 | 共通の前提 | キットの `docs/guides/working/examples/README.md`（以下「共通 §n」） |
@@ -70,9 +70,9 @@ issue-driven-example-java/
 │   └── application.yml
 ├── src/test/java/example/billing/     # JUnit 5, MockMvc, integration
 ├── src/test/resources/fixtures/
-├── docs/requirements.md
-├── docs/basic-design.md
-├── docs/decisions/
+├── docs/inspecs/<年>/<月>/requirements.md   # 上流から受け取る（人の文書。Claude は書き換えない）
+├── docs/inspecs/<年>/<月>/basic-design.md   # 同じ
+├── docs/guides/working/               # detailed-design/（詳細設計）・issue-plan.md（Issue の並び）
 ├── scripts/                            # キットの Node 版（test.mjs・issue-run/）
 ├── package.json                        # 依存なし。キットの issueKit の欄だけ
 ├── .env.example                        # 接続文字列の見本（実の値はユーザーの環境変数か .env）
@@ -246,18 +246,18 @@ flowchart TD
 
 ### 8.2 詳細設計の単位
 
-Issue の並び（夜ごとの表）はこの文書に書かない。[`issues/plan.md`](issues/plan.md) が正（回ごとに見直す段取りのため）。
+Issue の並び（夜ごとの表）はこの文書に書かない。案件のリポジトリで、要件定義書とこの文書から Claude Code が作る（共通 §4.4）。
 
 この基本設計だけで実装の Issue が書ける部分（テストの入口・スキーマ・シード・ドメインの計算）は、詳細設計を作らない。ほかは、下の単位ごとに**夜の「設計書を書く」Issue**（D 番号）で、実装の 1 晩前に詳細設計を書かせ、人が朝に読んで直す（共通 §3.2）。形は共通 §3.3。
 
-| 単位 | 回のリポジトリでのファイル | 中身（URL・画面） | 受け持つ要件 |
+| 単位 | 案件のリポジトリでのファイル | 中身（URL・画面） | 受け持つ要件 |
 |---|---|---|---|
-| DD-01 共通とセキュリティ | `docs/design/dd-01-common-security.md` | エラーの変換と画面の文言・相関 ID・ログ・ヘルス・フォームのログイン・CSRF・ロールごとの認可（5.2 の表）・共通のレイアウト | JAVA-F-01・02、JAVA-AC-12・16 |
-| DD-02 顧客・料金プラン・契約 | `docs/design/dd-02-masters-contracts.md` | 顧客・プラン・発効月の料金・契約の URL と画面と検証 | JAVA-F-03〜05、JAVA-BR-01〜03・11、JAVA-AC-13 |
-| DD-03 利用実績と請求のプレビュー | `docs/design/dd-03-usage-preview.md` | 利用実績の登録と重複の排除・請求の対象の判定・プレビューの計算と画面 | JAVA-F-06・07、JAVA-BR-04・05、JAVA-AC-01・05 |
-| DD-04 月次のバッチ | `docs/design/dd-04-batch.md` | バッチの起動・契約ごとのトランザクション・排他・失敗の注入・`billing_runs`・実行の画面 | JAVA-F-08、JAVA-BR-06、JAVA-AC-02〜04・14 |
-| DD-05 請求の確定と入金 | `docs/design/dd-05-invoice-payment.md` | 確定・確定後の不変・競合・入金・未収額・照会の画面 | JAVA-F-09〜11、JAVA-BR-07〜10、JAVA-AC-06〜11 |
-| DD-06 監査・運用・性能 | `docs/design/dd-06-audit-ops.md` | 監査ログと画面・バッチの履歴・ダッシュボードの数字・シナリオの試験・性能の測り方・README の目次 | JAVA-F-12〜14、JAVA-AC-15、§8 の性能 |
+| DD-01 共通とセキュリティ | `docs/guides/working/detailed-design/dd-01-common-security.md` | エラーの変換と画面の文言・相関 ID・ログ・ヘルス・フォームのログイン・CSRF・ロールごとの認可（5.2 の表）・共通のレイアウト | JAVA-F-01・02、JAVA-AC-12・16 |
+| DD-02 顧客・料金プラン・契約 | `docs/guides/working/detailed-design/dd-02-masters-contracts.md` | 顧客・プラン・発効月の料金・契約の URL と画面と検証 | JAVA-F-03〜05、JAVA-BR-01〜03・11、JAVA-AC-13 |
+| DD-03 利用実績と請求のプレビュー | `docs/guides/working/detailed-design/dd-03-usage-preview.md` | 利用実績の登録と重複の排除・請求の対象の判定・プレビューの計算と画面 | JAVA-F-06・07、JAVA-BR-04・05、JAVA-AC-01・05 |
+| DD-04 月次のバッチ | `docs/guides/working/detailed-design/dd-04-batch.md` | バッチの起動・契約ごとのトランザクション・排他・失敗の注入・`billing_runs`・実行の画面 | JAVA-F-08、JAVA-BR-06、JAVA-AC-02〜04・14 |
+| DD-05 請求の確定と入金 | `docs/guides/working/detailed-design/dd-05-invoice-payment.md` | 確定・確定後の不変・競合・入金・未収額・照会の画面 | JAVA-F-09〜11、JAVA-BR-07〜10、JAVA-AC-06〜11 |
+| DD-06 監査・運用・性能 | `docs/guides/working/detailed-design/dd-06-audit-ops.md` | 監査ログと画面・バッチの履歴・ダッシュボードの数字・シナリオの試験・性能の測り方・README の目次 | JAVA-F-12〜14、JAVA-AC-15、§8 の性能 |
 
 ### 8.3 決めた方式（詳細設計の前に決めておく）
 
