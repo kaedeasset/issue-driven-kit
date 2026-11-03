@@ -3,7 +3,8 @@
 | 項目 | 内容 |
 |---|---|
 | 文書ID | NET-BD-001 |
-| 版 / 日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：PostgreSQL 17 を Windows に入れておく・.NET 版のキットを作らず Node 版を広げて当てる（8 章）・Issue を夜ごとの並びに書き直した） |
+| 段 | **上流**（受注の後に人が書き、受注先と合意した文書という想定。共通 §1.2）。生成 AI 駆動の段（詳細設計・実装・テスト）の入力で、その段の中では変えない |
+| 版 / 日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：PostgreSQL 17 を Windows に入れておく・.NET 版のキットを作らず Node 版を広げて当てる（8 章）・1.1 に使う技術と版を足した・8 章に詳細設計の単位と決めた方式を書き、Issue の並びは issues/plan.md へ出した） |
 | 対象リポジトリ | 回ごとに `issue-driven-example-dotnet-r<回>`（新規作成） |
 | 対応要件 | [`requirements.md`](requirements.md) NET-F/NET-BR/NET-AC |
 | 共通の前提 | キットの `docs/guides/working/examples/README.md`（以下「共通 §n」） |
@@ -25,6 +26,28 @@ flowchart LR
 - APIサーバー：ASP.NET Core Web API、.NET 10、EF Core + Npgsql。Controller（またはEndpoint）→Application→Domain→Infrastructure。
 - ファイル出力：CSV・PDFの生成対象を明確にする。CSV商品取込はクライアントで一次解析後APIに送信し、サーバーで再検証/一括反映。
 - データの正はAPI/DB。クライアントの表示キャッシュは正としない。
+
+### 1.1 使う技術と版（詳細設計の前に決めておく）
+
+**2026-11-03 にレジストリ（NuGet・.NET のリリースの一覧）で確かめた安定版**から選んだ。基本設計で**メジャーとマイナーまで**決める。パッチは C1 で入れた時点の最新を `packages.lock.json` と `global.json` に固定し、README に書く。メジャーかマイナーを上げるときは、上流（基本設計）に戻して直す（共通 §1.2）。
+
+| 層 | 使う物 | 版 | 選んだ理由・注意 |
+|---|---|---|---|
+| 実行環境 | .NET SDK | 10.0（LTS。確かめた時点の SDK は 10.0.403） | 11.0 は rc で、サポートも短い（STS） |
+| 画面 | WinUI 3・Windows App SDK（`Microsoft.WindowsAppSDK`） | 2.6.x | — |
+| 画面 | `CommunityToolkit.Mvvm` | 8.4.x | MVVM |
+| 画面 | 表の部品 | WinUI 3 の標準の `ListView` | A1 |
+| API | ASP.NET Core・組み込みの OpenAPI（`Microsoft.AspNetCore.OpenApi`） | 10.0.x | .NET 10 と同じ版 |
+| API | `Microsoft.AspNetCore.Authentication.JwtBearer` | 10.0.x | A4 |
+| ORM | Entity Framework Core・`Npgsql.EntityFrameworkCore.PostgreSQL` | 10.0.x・10.0.x | — |
+| 帳票 | `PDFsharp-MigraDoc` | 6.5.x | A2 |
+| CSV | `CsvHelper` | 34.0.x | A6 |
+| DB | PostgreSQL | 17（確かめた時点の最新は 17.11） | Windows のサービス（共通 §2.2） |
+| テスト | xUnit v3（`xunit.v3`） | 4.0.x | 単体と ViewModel |
+| テスト | `Microsoft.AspNetCore.Mvc.Testing` | 10.0.x | API の統合 |
+| テスト | `JunitXml.TestLogger` | 8.1.x | `dotnet test` の結果を JUnit の XML にする（キットの P-1 が読む） |
+| テスト | FlaUI（`FlaUI.UIA3`） | 5.0.x | 画面のスモーク（A3） |
+| キットの脚本 | Node.js・npm | 22.14.0・11.6.2 | キットと確認コマンドのため（共通 §3.1） |
 
 ## 2. ソリューション構成
 
@@ -172,7 +195,7 @@ sequenceDiagram
 - PDFはAPI側が**請求スナップショット**から生成し、クライアントがファイル保存/標準PDF表示を実行。
 - 請求番号、宛先、品名、明細数量・単価、税、税込計、発行日時を含める。
 - PDFの表示/印刷はシステムの標準アプリを起動。印刷実行自体のE2E合否は人手確認と切り分ける。
-- PDF生成ライブラリはライセンス・日本語フォントの配布条件を確認してADR化。フォントファイルの再配布は別途権利確認。
+- PDF のライブラリは PDFsharp-MigraDoc（8.3 A2）。日本語のフォントは Windows に入っている物を実行時に使い、フォントのファイルを配らない。
 
 ## 6. 競合・例外・回復
 
@@ -188,7 +211,7 @@ sequenceDiagram
 | Domain単体 | Windows/Linux可 | `dotnet test` / xUnit等 | NET-BR計算・遷移・境界値合格 |
 | API統合 | Windows/Linux可 | PostgreSQL試験DB + HTTP | NET-AC-01～08、15 |
 | ViewModel単体 | Windows（必要に応じ環境差を分離） | MVVMロジックのテスト | 入力・非同期状態・エラー表示 |
-| UIスモーク | 対話Windowsセッション | Windows Application Driver等、実環境対応ツールを選定 | 起動、主操作、DPI、フォーカス |
+| UIスモーク | 対話Windowsセッション | FlaUI（UI Automation。8.3 A3） | 起動、主操作、DPI、フォーカス |
 | CSV/PDF | API/Windows | CSV fixture、PDFの内容抽出と人間による表示確認 | NET-AC-09～11 |
 | MSIXインストール | WindowsテストVM | MSIX生成、信頼設定、導入/削除 | NET-AC-12 |
 
@@ -197,7 +220,7 @@ sequenceDiagram
 - 試験の DB は Windows のサービスの PostgreSQL 17 の `salesflow_net_test`（共通 §2.2）。テストの入口が毎回マイグレーションを当て直してシードを入れる。DB につながらないときは理由を 1 行出して `Result: FAIL`。
 - ビルド成果物・MSIX・署名素材をGitのソース管理対象にしない。テストログは個人情報をマスク。
 
-## 8. issue-driven-kit の当て方・Issue の並び
+## 8. issue-driven-kit の当て方・詳細設計の単位
 
 ### 8.1 当て方（.NET 版のキットは作らない）
 
@@ -212,53 +235,34 @@ sequenceDiagram
 - 確認コマンドは ```` ```js ````（Node.js で `dotnet` を呼ぶ）。リポジトリには依存を持たない `package.json` を置く。
 - 画面のスモークテスト（UI Automation）は、ログインしたままの画面が要る。その Issue を回す夜は Windows をロックしない。ロックされていて動かせないときは `NOT RUN` として FAIL にせず、Issue の合格の条件にも入れない（人が別に記録する）。
 
-### 8.2 Issue の並び（回1の初版）
+### 8.2 詳細設計の単位
 
-番号（N01…）は作る順で、そのまま実行の順になる。その夜の分は前の日の昼に作る（共通 §4.2）。行数は本体とテスト、分は 1 回で合格したときの見込み。**API の権限の枠（N07）を先に作り、ログインとトークン（N08）は後から差し込む**ので、マスターの API は N08 を待たない。
+Issue の並び（夜ごとの表）はこの文書に書かない。[`issues/plan.md`](issues/plan.md) が正（回ごとに見直す段取りのため）。
 
-| 時 | 番号 | Issue | 前提 | 行数 | 分 |
-|---|---|---|---|---|---|
-| 1日目 昼 | C1 | 初期化（`SalesFlow.slnx`・6 プロジェクト・nullable・解析器・`package.json`）・PostgreSQL の DB とユーザー・開発用の TLS 証明書 | — | 会話 | — |
-| 1日目 昼 | C2 | キットを入れる（P-1・P-2・P-6 の後の版）・点検・ラベル・Windows の設定（共通 §2.1）・DB につながることを手で確かめる | C1 | 会話 | — |
-| 夜1 | N01 | テストの入口：`dotnet build -warnaserror`・`dotnet test` の XML・0 件 FAIL・わざと落とす・DB につながらないときの FAIL | — | 400 | 40 |
-| 夜1 | N02 | ドメイン：金額の計算・状態の遷移（NET-BR-02〜04） | N01 | 450 | 35 |
-| 夜1 | N03 | ドメイン：明細の上限・数量と単価の範囲・在庫の不変条件 | N02 | 400 | 30 |
-| 夜1 | N04 | EF Core のスキーマ・マイグレーション（11 表・制約） | N01 | 600 | 45 |
-| 夜1 | N05 | シード・試験用の DB の作り直し（NET-AC-15 の土台） | N04 | 450 | 40 |
-| 夜1 | N06 | API の共通：エラーの形・requestId・構造化ログ・`/health/ready` | N01 | 500 | 40 |
-| 夜1 | N07 | API の権限の枠：ロールの判定・要求者を取り出す口・401 と 403（NET-BR-09・NET-AC-08） | N06 | 500 | 40 |
-| 夜2 | N08 | 認証：ログイン・短命のアクセストークン・更新トークン（ハッシュで保存）・ログアウトで失効 | N05, N07 | 650 | 50 |
-| 夜2 | N09 | OpenAPI の契約・Contracts の DTO・差分を見つけるテスト | N06 | 450 | 35 |
-| 夜2 | N10 | 顧客の API（作成・一覧・検索・変更・無効化・版の競合） | N05, N07 | 550 | 40 |
-| 夜2 | N11 | 商品の API | N05, N07 | 550 | 40 |
-| 夜2 | N12 | 在庫の調整の API・在庫の動き・監査ログを書く | N11 | 450 | 40 |
-| 夜2 | N13 | デスクトップの土台：Shell・画面の移動・MVVM・状態（Idle・Loading・Saving・Error・Conflict） | N01 | 600 | 50 |
-| 夜2 | N14 | API の呼び出し：型つきの client・タイムアウト・キャンセル・requestId | N09, N13 | 450 | 40 |
-| 夜3 | N15 | サインインの画面・資格情報の保持（Credential Locker）・サインアウト（NET-AC-14） | N08, N14 | 550 | 50 |
-| 夜3 | N16 | 顧客の画面（一覧・検索・編集のダイアログ・競合の表示） | N10, N15 | 600 | 50 |
-| 夜3 | N17 | 商品と在庫の画面（一覧） | N11, N15 | 550 | 45 |
-| 夜3 | N18 | 在庫の調整のダイアログ | N12, N17 | 350 | 35 |
-| 夜3 | N19 | 受注の下書きの API（明細・合計・NET-AC-01） | N03, N10, N11 | 550 | 45 |
-| 夜3 | N20 | 受注の確定の API（1 つのトランザクション・在庫・NET-AC-02・03） | N12, N19 | 450 | 45 |
-| 夜4 | N21 | 受注の取消・二重に戻さない（NET-AC-04） | N20 | 400 | 40 |
-| 夜4 | N22 | 同時更新の 409・並行テスト（NET-AC-07） | N21 | 400 | 40 |
-| 夜4 | N23 | 受注登録の画面：顧客の選択・明細のグリッド | N16, N17, N19 | 600 | 50 |
-| 夜4 | N24 | 受注登録の画面：計算のプレビュー・保存・連打の防止 | N23 | 450 | 40 |
-| 夜4 | N25 | 受注の一覧と詳細：確定・取消・競合の警告 | N22, N24 | 550 | 50 |
-| 夜4 | N26 | 請求書の発行の API（スナップショット・二重発行の防止・NET-AC-05・06） | N20 | 500 | 45 |
-| 夜5 | N27 | 請求書の PDF の生成（API・NET-AC-11） | N26 | 500 | 45 |
-| 夜5 | N28 | 請求の画面：一覧・詳細・PDF の保存・印刷の起動 | N25, N27 | 550 | 50 |
-| 夜5 | N29 | CSV の取り込み：preview の API（行ごとのエラー） | N11 | 450 | 40 |
-| 夜5 | N30 | CSV の取り込み：commit の API（ハッシュ・全件か 0 件・NET-AC-09・10） | N29 | 400 | 40 |
-| 夜5 | N31 | CSV の画面（選択・プレビュー・反映）・受注一覧の CSV の書き出し | N17, N30 | 550 | 50 |
-| 夜5 | N32 | 監査ログの API と画面 | N12, N15 | 500 | 45 |
-| 夜6 | N33 | ホームの画面（確定待ち・未請求の件数） | N15, N20 | 350 | 35 |
-| 夜6 | N34 | 画面のスモークテスト（起動・主な操作・DPI 100・150・200%）。**この夜はロックしない** | N28, N31 | 500 | 50 |
-| 夜6 | N35 | MSIX のパッケージ・導入と削除の手順（NET-AC-12 は人が記録） | N34 | 300 | 40 |
-| 夜6 | N36 | README・運用の文書（PostgreSQL を入れる・証明書・復旧）・性能の測定（受注 1 万件の一覧） | N35 | 400 | 40 |
-| 7日目 昼 | — | 完成の判定（要件 §10。GUI と MSIX は人が記録する） | 全部 | — | — |
+この基本設計だけで実装の Issue が書ける部分（テストの入口・ドメイン・スキーマ・シード）は、詳細設計を作らない。ほかは、下の単位ごとに**夜の「設計書を書く」Issue**（D 番号）で、実装の 1 晩前に詳細設計を書かせ、人が朝に読んで直す（共通 §3.2）。形は共通 §3.3。
 
-夜の中の鎖はいちばん長くて 3 段（夜1の N01→N02→N03 など）。手直しの Issue（約 6 件）は、その朝に作り、その夜の最初に回る。
+| 単位 | 回のリポジトリでのファイル | 中身（API・画面） | 受け持つ要件 |
+|---|---|---|---|
+| DD-01 API の共通と認証 | `docs/design/dd-01-api-common-auth.md` | エラーの `code` の一覧・requestId・ログ・`/health/ready`・ロールの判定・ログイン・トークンの更新と失効・OpenAPI の契約の出し方 | NET-F-01・02・14、NET-BR-09、NET-AC-08・14 |
+| DD-02 デスクトップの土台 | `docs/design/dd-02-desktop-shell.md` | Shell・画面の移動・ViewModel の状態（4.1）・API の呼び出し・サインインの画面・資格情報の保持・テストのしかた（ViewModel の単体） | NET-UI-01・02、NET-F-11 |
+| DD-03 マスターと在庫 | `docs/design/dd-03-masters.md` | 顧客・商品・在庫の調整の API と画面 | NET-F-03〜05、NET-BR-01・07、NET-UI-03・04 |
+| DD-04 受注 | `docs/design/dd-04-orders.md` | 受注の下書き・確定・取消・同時更新の API と、明細のグリッドの画面 | NET-F-06・07、NET-BR-02〜05・07、NET-AC-01〜04・07 |
+| DD-05 請求と PDF | `docs/design/dd-05-invoices-pdf.md` | 請求書の発行・照会・PDF の中身と置き方・印刷の起動 | NET-F-08・09、NET-BR-06・10、NET-AC-05・06・11 |
+| DD-06 CSV | `docs/design/dd-06-csv.md` | 取り込み（preview・commit・ハッシュ）・受注一覧の書き出し・画面 | NET-F-10、NET-BR-08、NET-AC-09・10 |
+| DD-07 監査・ホーム・配布 | `docs/design/dd-07-audit-release.md` | 監査ログの API と画面・ホーム・画面のスモークテストの道具と項目・MSIX・README の目次 | NET-F-12〜14、NET-AC-12・13・15 |
+
+### 8.3 決めた方式（詳細設計の前に決めておく）
+
+1.1 の「使う技術と版」と一緒に、基本設計で決めておく（夜の Issue の中で決めさせない。共通 §1.2）。
+
+| # | 決めたこと | 決定 | 選ばなかった案・理由 |
+|---|---|---|---|
+| A1 | 明細のグリッドに使う部品 | **WinUI 3 の標準の `ListView`（列は自前のテンプレート）**。外の表の部品を使わない | 外の DataGrid：WinUI 3 向けの手入れとライセンスが部品ごとに違い、UI Automation で操作できるかも揃わない |
+| A2 | PDF を作るライブラリ | **PDFsharp-MigraDoc**（MIT）。日本語のフォントは Windows に入っている游ゴシックを実行時に使い、フォントのファイルを配らない | QuestPDF：会社の売上の額で有料のライセンスが要るため、公開の見本に向かない |
+| A3 | 画面のスモークテストの道具 | **FlaUI**（`FlaUI.UIA3`。UI Automation） | WinAppDriver：手入れが止まっている |
+| A4 | アクセストークンの形と保持 | JWT（`Microsoft.AspNetCore.Authentication.JwtBearer`）。アクセストークンは 15 分、更新トークンは 14 日でハッシュを DB に保存。クライアントは更新トークンを Windows の資格情報の保管（`PasswordVault`）に置く | — |
+| A5 | MSIX の署名 | Windows App SDK の単一プロジェクトの MSIX と、開発用の自己署名証明書（作り方と信頼のさせ方を README に書く）。本番の署名は対象外 | — |
+| A6 | CSV の読み書き | **CsvHelper** | 自前の解析：BOM・引用符の扱いを作り直すことになる |
 
 ## 9. デプロイ・運用
 
@@ -273,4 +277,4 @@ sequenceDiagram
 - NET-F-06/07/08→受注/請求API→NET-UI-05/06/07→NET-AC-04～08。
 - NET-F-09/10→PDF/CSV API→NET-UI-07/08→NET-AC-09～11。
 - NET-F-13/14→CI/MSIX/診断→NET-AC-12～15。
-- 初期ADR：グリッドUIライブラリ、日本語PDFライブラリ、MSIX署名、UIスモーク手段、authトークン実装、PostgreSQLテスト実行基盤。
+- 使う物と版は 1.1、グリッド・PDF・MSIX の署名・UI のスモークの道具・トークンの方式は 8.3 で決めた（夜の Issue の中で決めさせない）。PostgreSQL の試験の DB は 7 章（Windows のサービス）。

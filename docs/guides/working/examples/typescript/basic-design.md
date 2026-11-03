@@ -3,7 +3,8 @@
 | 項目 | 内容 |
 |---|---|
 | 文書ID | TS-BD-001 |
-| 版/日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：Docker Compose をやめ PostgreSQL 17 を Windows に入れておく・テストの DB の決まり・11 章を夜ごとの Issue の並びに書き直した） |
+| 段 | **上流**（受注の後に人が書き、受注先と合意した文書という想定。共通 §1.2）。生成 AI 駆動の段（詳細設計・実装・テスト）の入力で、その段の中では変えない |
+| 版/日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：Docker Compose をやめ PostgreSQL 17 を Windows に入れておく・テストの DB の決まり・1.1 に使う技術と版を足した・11 章に詳細設計の単位と決めた方式を書き、Issue の並びは issues/plan.md へ出した） |
 | 対象 | 回ごとに `issue-driven-example-typescript-r<回>`（新規リポジトリ） |
 | 対応要件 | [`requirements.md`](requirements.md) TS-F / TS-BR / TS-AC |
 | 共通の前提 | キットの `docs/guides/working/examples/README.md`（以下「共通 §n」） |
@@ -25,6 +26,29 @@ flowchart LR
 - **接続**：Next.js側の同一オリジンBFF（route handlers等）経由でAPIに到達させる。ブラウザからAPIへ認証秘密を直接渡さない。
 - **トランザクション**：在庫減算、受注確定、請求発行をDB原子的に処理。PrismaトランザクションとDB制約を併用。
 - **配布**：ローカル開発は Windows のサービスの PostgreSQL 17（共通 §2.2）、クライアント・API は各開発プロセス。Docker は使わない。本番公開は MVP 必須ではない。
+
+### 1.1 使う技術と版（詳細設計の前に決めておく）
+
+**2026-11-03 にレジストリ（npm）で確かめた安定版**から選んだ。基本設計で**メジャーとマイナーまで**決める。パッチは C1 で入れた時点の最新を `package-lock.json` に固定し、README に書く。メジャーかマイナーを上げるときは、上流（基本設計）に戻して直す（共通 §1.2）。
+
+| 層 | 使う物 | 版 | 選んだ理由・注意 |
+|---|---|---|---|
+| 実行環境 | Node.js | 22.14.0 | キットと同じ（`.nvmrc`）。下の物の要る版（`^22.12` など）を満たす |
+| 実行環境 | npm | 11.6.2 | キットと同じ |
+| 言語 | TypeScript | 6.0.x | 7.0 は `typescript-eslint` がまだ対応していない（対応は 6.1 未満まで） |
+| 画面 | Next.js（App Router）・React・react-dom | 16.4.x・19.3.x・19.3.x | — |
+| API | NestJS（`@nestjs/core`・`@nestjs/common`・`@nestjs/platform-express`） | 12.3.x | — |
+| API | `@nestjs/swagger`（OpenAPI） | 12.1.x | A2 |
+| API | `class-validator`・`class-transformer` | 0.15.x・0.5.x | DTO の検証 |
+| API | `express-session`・`connect-pg-simple`・`csrf-csrf` | 1.19.x・10.0.x・4.1.x | A3 |
+| API | `bcryptjs` | 3.0.x | A6 |
+| API | `pino`・`nestjs-pino`（JSON のログ） | 10.4.x・5.3.x | — |
+| ORM | Prisma（`prisma`・`@prisma/client`・`@prisma/adapter-pg`） | 7.10.x | npm の `latest` の札は 8.0 の rc を指しているので使わない |
+| 型の生成 | `openapi-typescript` | 7.13.x | A2 |
+| DB | PostgreSQL | 17（確かめた時点の最新は 17.11） | Windows のサービス（共通 §2.2）。18 より、使う ORM と道具の対応が長い |
+| テスト | Vitest | 5.1.x | 単体と API の統合 |
+| テスト | Playwright（`@playwright/test`） | 1.64.x | E2E（A4） |
+| 静的解析 | ESLint・`typescript-eslint` | 10.14.x・8.72.x | — |
 
 ## 2. ディレクトリ構成
 
@@ -174,7 +198,7 @@ JSONはcamelCase、日付はISO8601、エラーは `{code,message,details,reques
 - DB は Windows のサービスの PostgreSQL 17 の `salesflow_ts_test`（共通 §2.2）。テストの入口が毎回スキーマを作り直してシードを入れる（`prisma migrate reset --force`）。DB につながらないときは理由を 1 行出して `Result: FAIL`。確認コマンドの中で DB を起動しない。
 - CI は GitHub Actions の `services: postgres`（`postgres:17`）。
 
-## 11. issue-driven-kit組込み・Issue の並び
+## 11. issue-driven-kit組込み・詳細設計の単位
 
 ### 11.1 組込み
 
@@ -182,48 +206,32 @@ JSONはcamelCase、日付はISO8601、エラーは `{code,message,details,reques
 2. 仕様・テスト・見本の変更は、実装の Issue と別の Issue（またはコミット）で先に固め、実装の Issue では守るファイルにする（共通 §4.2）。
 3. 対象の Issue に `claude-run` を付ける。閉じるのは人。結果はアプリの `docs/reports/` に残る。
 4. 夜は `node scripts/issue-run/issue-run.mjs --round-minutes 60 --max-rounds 2`（共通 §4.3）。
+5. Issue の並び（夜ごとの表）はこの文書に書かない。[`issues/plan.md`](issues/plan.md) が正（回ごとに見直す段取りのため）。
 
-### 11.2 Issue の並び（回1の初版）
+### 11.2 詳細設計の単位
 
-番号（T01…）は作る順で、そのまま実行の順になる。**その夜の分は前の日の昼に作る**（朝に作る手直しの Issue が先に回るように。共通 §4.2）。行数は本体とテスト、分は 1 回で合格したときの見込み。
+この基本設計だけで実装の Issue が書ける部分（テストの入口・スキーマ・シード・ドメイン）は、詳細設計を作らない。ほかは、下の単位ごとに**夜の「設計書を書く」Issue**（D 番号）で、実装の 1 晩前に詳細設計を書かせ、人が朝に読んで直す（共通 §3.2）。形は共通 §3.3。
 
-**認証の分け方**：権限の枠（ロールの判定と、だれが要求したかを取り出す口）を T07 で先に作り、ログインとセッション（T08）は後から差し込む。マスターの API は T07 だけを前提にするので、T08 が落ちても夜2のマスターは進む。
+| 単位 | 回のリポジトリでのファイル | 中身（API・画面） | 受け持つ要件 |
+|---|---|---|---|
+| DD-01 共通と認証 | `docs/design/dd-01-common-auth.md` | エラーの `code` の一覧・ページング・ログ・ヘルスチェック・ログインとログアウト・セッション・ロールのガード・BFF・CSRF・ログイン画面 | TS-F-01・02・13、TS-BR-10、TS-AC-07・11 |
+| DD-02 マスターと在庫 | `docs/design/dd-02-masters.md` | 顧客・商品・在庫の調整の API と画面（TS-UI-03・04） | TS-F-03〜05・11、TS-BR-09、TS-AC-12 |
+| DD-03 受注 | `docs/design/dd-03-orders.md` | 受注の下書き・確定・取消・同時更新の API と画面（TS-UI-05） | TS-F-06〜08、TS-BR-02〜06・08、TS-AC-01〜04・08 |
+| DD-04 請求・監査・ダッシュボード | `docs/design/dd-04-invoices-audit.md` | 請求書の発行と照会・印刷向けの HTML・監査ログ・ダッシュボード（TS-UI-02・06・07） | TS-F-09・10、TS-BR-07、TS-AC-05・06・09 |
+| DD-05 E2E・性能・運用 | `docs/design/dd-05-e2e-ops.md` | E2E のシナリオ・2 回続けて回す確かめ・性能の測り方・README と運用の文書の目次 | TS-AC-10、§7 の性能・運用 |
 
-| 時 | 番号 | Issue | 前提 | 行数 | 分 |
-|---|---|---|---|---|---|
-| 1日目 昼 | C1 | 初期化（monorepo・TypeScript strict・ESLint・`package.json` の `issueKit`）・PostgreSQL の DB とユーザー・`.env.example` | — | 会話 | — |
-| 1日目 昼 | C2 | キットを入れる・点検・ラベル・Windows の設定（共通 §2.1）・DB につながることを手で確かめる | C1 | 会話 | — |
-| 夜1 | T01 | テストの入口：vitest の projects（web・api）・型チェック・0 件 FAIL・わざと落とす・DB につながらないときの FAIL | — | 600 | 45 |
-| 夜1 | T02 | DB のスキーマ（9 表・制約・`stocks.quantity >= 0`・請求の一意） | T01 | 450 | 40 |
-| 夜1 | T03 | シード・テスト用のデータ・試験用の DB の作り直し（TS-AC-10 の土台） | T02 | 450 | 40 |
-| 夜1 | T04 | 共通：エラーの形 `{code,message,details,requestId}`・追跡 ID・JSON のログ | T01 | 450 | 35 |
-| 夜1 | T05 | 共通：ヘルスチェック（live・ready）・ページング | T04 | 450 | 35 |
-| 夜1 | T06 | ドメイン：金額の計算・状態の遷移（DB を使わない。TS-BR-01〜04） | T01 | 450 | 30 |
-| 夜1 | T07 | 権限の枠：ロールのガード・要求者を取り出す口・401 と 403（TS-BR-10） | T04 | 500 | 40 |
-| 夜1 | T08 | 認証：ログイン・ログアウト・セッション・パスワードのハッシュ（TS-AC-11） | T03, T07 | 600 | 45 |
-| 夜1 | T09 | BFF（同じオリジン・Cookie・CSRF）・ログイン画面 | T08 | 600 | 45 |
-| 夜2 | T10 | 顧客の API（作成・一覧・検索・変更・無効化・版の競合） | T03, T07 | 550 | 40 |
-| 夜2 | T11 | 顧客の画面 | T09, T10 | 550 | 45 |
-| 夜2 | T12 | 商品の API | T03, T07 | 600 | 40 |
-| 夜2 | T13 | 商品の画面・在庫の表示 | T09, T12 | 600 | 45 |
-| 夜2 | T14 | 在庫の調整の API・在庫の動き・監査ログを書く | T12 | 450 | 40 |
-| 夜2 | T15 | 在庫の調整の画面 | T13, T14 | 350 | 30 |
-| 夜2 | T16 | 受注の下書きの API（明細・合計・TS-AC-01） | T06, T10, T12 | 550 | 45 |
-| 夜2 | T17 | 受注の下書きの画面（明細の編集） | T11, T13, T16 | 550 | 50 |
-| 夜3 | T18 | 受注の確定（在庫を減らす・1 つのトランザクション・TS-AC-02・03） | T14, T16 | 450 | 45 |
-| 夜3 | T19 | 受注の取消（在庫を戻す・二重に戻さない・TS-AC-04） | T18 | 450 | 40 |
-| 夜3 | T20 | 同時更新の 409・並行テスト・確定と取消のボタン（TS-AC-08） | T17, T19 | 500 | 50 |
-| 夜3 | T21 | 請求書の発行の API（二重発行の防止・金額の固定・TS-AC-05・06・09） | T18 | 550 | 45 |
-| 夜3 | T22 | 請求書の照会・印刷向けの HTML の画面 | T17, T21 | 550 | 45 |
-| 夜3 | T23 | 監査ログの照会（API と画面） | T09, T14 | 500 | 40 |
-| 夜3 | T24 | ダッシュボード | T09, T18 | 500 | 40 |
-| 夜4 | T25 | E2E：ログイン → 受注 → 確定 → 請求 → 照会 | T20, T22 | 450 | 50 |
-| 夜4 | T26 | E2E：権限・ログアウト後・2 回続けて同じ結果（TS-AC-07・10・11） | T25 | 450 | 45 |
-| 夜4 | T27 | 性能：固定データ（顧客 1 千・商品 1 千・受注 1 万）で一覧の p95 を測る | T03, T16 | 400 | 40 |
-| 夜4 | T28 | README・運用の文書（PostgreSQL を入れる・起動・初期化・復旧） | T26 | 400 | 30 |
-| 5日目 昼 | — | 完成の判定（要件 §9。README のとおりに人が再現する） | 全部 | — | — |
+### 11.3 決めた方式（詳細設計の前に決めておく）
 
-夜1の鎖はいちばん長くて T01→T02→T03→T08→T09 の 5 段。夜2以降の前の夜の分は済んでいる前提で、夜の中の鎖は 3 段まで。手直しの Issue（約 4 件）は、その朝に作り、その夜の最初に回る。
+1.1 の「使う技術と版」と一緒に、基本設計で決めておく（夜の Issue の中で決めさせない。共通 §1.2）。
+
+| # | 決めたこと | 決定 | 選ばなかった案 |
+|---|---|---|---|
+| A1 | 同時更新の版の渡し方 | 要求の本文の `version`（.NET・Java とそろえる） | `If-Match` ヘッダー |
+| A2 | API の型の共有のしかた | NestJS の OpenAPI（`@nestjs/swagger`）を出し、`openapi-typescript` で `packages/contracts` に型を作る | 手で書いた型 |
+| A3 | セッションの持ち方 | サーバーのセッション（`express-session`・`connect-pg-simple` で PostgreSQL に保存）と HttpOnly の Cookie。CSRF は `csrf-csrf` | 署名付きトークン |
+| A4 | E2E の道具 | Playwright（Chromium だけ） | — |
+| A5 | 受注の確定のロック | 条件付きの更新（在庫が足りるときだけ減らす） | 行のロック |
+| A6 | パスワードのハッシュ | `bcryptjs`（JS だけで動き、Windows でネイティブのビルドが要らない） | `argon2`（ネイティブのモジュール） |
 
 ## 12. トレーサビリティと未決事項
 
@@ -231,5 +239,5 @@ JSONはcamelCase、日付はISO8601、エラーは `{code,message,details,reques
 - TS-F-06/07/08→TS-UI-05→受注API→TS-AC-01～04/08。
 - TS-F-09→TS-UI-06→請求API→TS-AC-05/06。
 - TS-F-01/02→TS-UI-01→認証/権限→TS-AC-07/11。
-- 導入時にNext.js/NestJS/Prismaの対応済みバージョンを検証しlock固定。
-- APIスキーマ生成方式、認証ライブラリ、CIのE2Eブラウザ実行基盤は初期IssueでADRとして確定。
+- 使う物の版は 1.1 で決めた（メジャーとマイナー）。パッチは C1 で lock に固定する。
+- APIスキーマ生成方式、認証の方式、E2E の道具は 11.3 で決めた（夜の Issue の中で決めさせない）。

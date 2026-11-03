@@ -3,7 +3,8 @@
 | 項目 | 内容 |
 |---|---|
 | 文書ID | JAVA-BD-001 |
-| 版 / 日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：Docker Compose と Testcontainers をやめ PostgreSQL 17 を Windows に入れておく・Java 版のキットを作らず Node 版を広げて当てる（8 章）・Issue を夜ごとの並びに書き直した） |
+| 段 | **上流**（受注の後に人が書き、受注先と合意した文書という想定。共通 §1.2）。生成 AI 駆動の段（詳細設計・実装・テスト）の入力で、その段の中では変えない |
+| 版 / 日付 | 1.1 / 2026-11-03（1.0 は 2026-11-02。1.0 から：Docker Compose と Testcontainers をやめ PostgreSQL 17 を Windows に入れておく・Java 版のキットを作らず Node 版を広げて当てる（8 章）・1.1 に使う技術と版を足した・8 章に詳細設計の単位と決めた方式を書き、Issue の並びは issues/plan.md へ出した） |
 | 対象リポジトリ | 回ごとに `issue-driven-example-java-r<回>`（新規作成） |
 | 対応要件 | [`requirements.md`](requirements.md) JAVA-F / JAVA-BR / JAVA-AC |
 | 共通の前提 | キットの `docs/guides/working/examples/README.md`（以下「共通 §n」） |
@@ -26,6 +27,23 @@ flowchart LR
 - **サーバー**：Java 25、Spring Boot 4、Spring MVC、Thymeleaf、Spring Security、Spring Data JPA。単一デプロイ単位のモジュラーモノリス。
 - **DB**：PostgreSQL、Flywayマイグレーション。認証、請求、実績、入金、ジョブ履歴を管理。
 - **バッチ**：Application Serviceから対象月ごとの請求作成を開始する。スケジューラ常時運用はMVP対象外。手動実行・再実行の確実性を先に検証。
+
+### 1.1 使う技術と版（詳細設計の前に決めておく）
+
+**2026-11-03 にレジストリ（Maven Central・Adoptium）で確かめた安定版**から選んだ。基本設計で**メジャーとマイナーまで**決める。Spring の部品・Flyway・PostgreSQL の JDBC・JUnit は、**Spring Boot が管理する版**を使い、個別に版を書かない（組み合わせが確かめられている版のため）。パッチは C1 で入れた時点の最新を `pom.xml` と Maven Wrapper に固定し、README に書く。メジャーかマイナーを上げるときは、上流（基本設計）に戻して直す（共通 §1.2）。
+
+| 層 | 使う物 | 版 | 選んだ理由・注意 |
+|---|---|---|---|
+| 実行環境 | JDK（Eclipse Temurin） | 25（LTS） | いちばん新しい LTS |
+| ビルド | Maven・Maven Wrapper | 3.10.x・3.3.x | Windows では `mvnw.cmd` |
+| 土台 | Spring Boot | 4.1.x（確かめた時点で 4.1.2） | — |
+| 画面・API | Spring MVC・Thymeleaf・Spring Security・Spring Data JPA（Hibernate） | Spring Boot 4.1 が管理する版 | — |
+| DB の移行 | Flyway（`flyway-core`・`flyway-database-postgresql`） | Spring Boot 4.1 が管理する版 | — |
+| DB の接続 | PostgreSQL JDBC | Spring Boot 4.1 が管理する版 | — |
+| DB | PostgreSQL | 17（確かめた時点の最新は 17.11） | Windows のサービス（共通 §2.2）。Flyway などの対応が 18 より長い |
+| テスト | JUnit（Jupiter）・AssertJ・Spring の MockMvc | Spring Boot 4.1 が管理する版 | — |
+| テスト | Maven Surefire・Failsafe | Spring Boot 4.1 が管理する版 | 単体と統合を分けて回し、結果の XML をキットの P-1 が読む |
+| キットの脚本 | Node.js・npm | 22.14.0・11.6.2 | キットと確認コマンドのため（共通 §3.1） |
 
 ## 2. プロジェクト/パッケージ構成
 
@@ -151,7 +169,7 @@ flowchart TD
 - 請求を**契約単位の短いDBトランザクション**で作成。1件の処理失敗で他の契約を長時間ロックしない。
 - 完了済み請求は再実行でSKIPPED。`UNIQUE(contract_id,target_month)`と条件付きINSERT/競合ハンドリングを併用。
 - ジョブ全体の`billing_runs`にSUCCESS/PARTIAL_FAILED/FAILEDと処理件数を記録。部分失敗があればリトライで未作成契約のみ補完可能。
-- 同一月のバッチ同時起動は**実行単位の排他制御**を設ける（DB advisory lockまたはロックテーブルを初期ADRで確定）。仮に重複起動しても一意制約によって二重請求を防ぐ。
+- 同一月のバッチ同時起動は**実行単位の排他制御**を設ける（PostgreSQL の advisory lock。8.3 A1）。仮に重複起動しても一意制約によって二重請求を防ぐ。
 - 失敗注入テスト：対象契約の一部で例外を起こし、再実行後に1件/契約/月となることを確認。
 - 利用実績と料金変更が請求作成中に発生する場合は、請求対象月の実績締めを明示する。MVPでは**プレビューと本実行の間に実績を変更し得る**ため、実行時点の再計算を正とし、プレビュー結果との差分は明示する。
 - DRAFT請求の再計算は経理が明示的に要求した場合のみ実行し、利用実績が変わっても自動更新しない。プレビューで最新値と既存DRAFTの差を示す。
@@ -203,7 +221,7 @@ flowchart TD
 | MVC | Spring MockMvc | ログイン/CSRF/role/画面遷移、JAVA-AC-12/16 |
 | 統合 | Windows のサービスの PostgreSQL 17 の `billing_java_test`（共通 §2.2） | unique、lock、請求・入金トランザクション |
 | バッチ | 固定seed、並列実行、失敗注入 | JAVA-AC-02～05/14 |
-| E2E | Playwright等のブラウザ試験（任意に導入） | 契約→実績→月次請求→確定→入金 |
+| 通し | MockMvc のシナリオの試験（8.3 A5。ブラウザの E2E は MVP では入れない） | 契約→実績→月次請求→確定→入金 |
 | 再現 | `./mvnw verify`、seedリセット | JAVA-AC-15 |
 
 - H2だけの試験ではPostgreSQLの排他・一意制約・トランザクション特性を証明しない。結合テストはPostgreSQLで回す。
@@ -211,7 +229,7 @@ flowchart TD
 - Maven Surefire/Failsafeを用い単体と結合を明示的に実行。0件テストを成功として扱わない契約を検証する。
 - CI例：JDK25→Maven依存解決→静的解析→unit→DBマイグレーション→integration→batch並列→package→レポート保管。
 
-## 8. issue-driven-kit の当て方・Issue の並び
+## 8. issue-driven-kit の当て方・詳細設計の単位
 
 ### 8.1 当て方（Java 版のキットは作らない）
 
@@ -226,48 +244,32 @@ flowchart TD
 - 確認コマンドは ```` ```js ````（Node.js で `mvnw.cmd` を呼ぶ）。リポジトリには依存を持たない `package.json` を置く。
 - 判定に使うテストと見本（`src/test/resources/fixtures/`）は、実装の Issue より前に別の Issue で固め、実装の Issue では守るファイルにする（共通 §4.2）。
 
-### 8.2 Issue の並び（回1の初版）
+### 8.2 詳細設計の単位
 
-番号（J01…）は作る順で、そのまま実行の順になる。その夜の分は前の日の昼に作る（共通 §4.2）。行数は本体とテスト、分は 1 回で合格したときの見込み。
+Issue の並び（夜ごとの表）はこの文書に書かない。[`issues/plan.md`](issues/plan.md) が正（回ごとに見直す段取りのため）。
 
-| 時 | 番号 | Issue | 前提 | 行数 | 分 |
-|---|---|---|---|---|---|
-| 1日目 昼 | C1 | 初期化（Maven Wrapper・JDK 25・Spring Boot 4・パッケージの枠・`package.json`）・PostgreSQL の DB とユーザー | — | 会話 | — |
-| 1日目 昼 | C2 | キットを入れる（P-1・P-2・P-6 の後の版）・点検・ラベル・Windows の設定（共通 §2.1）・DB につながることを手で確かめる | C1 | 会話 | — |
-| 夜1 | J01 | テストの入口：`mvnw.cmd verify`・Surefire と Failsafe の XML・0 件 FAIL・わざと落とす・DB につながらないときの FAIL | — | 400 | 45 |
-| 夜1 | J02 | Flyway のスキーマ（11 表・一意制約） | J01 | 500 | 40 |
-| 夜1 | J03 | シード（3.2 の固定データ）・試験用の DB の作り直し（JAVA-AC-15 の土台） | J02 | 400 | 40 |
-| 夜1 | J04 | ドメイン：`YearMonth`・金額（`multiplyExact`）・料金の計算（JAVA-BR-01・04） | J01 | 450 | 35 |
-| 夜1 | J05 | 共通：エラーの変換・相関 ID・ログ・`/actuator/health` | J01 | 400 | 35 |
-| 夜1 | J06 | セキュリティ：フォームのログイン・セッション・CSRF・パスワードのハッシュ（JAVA-AC-16） | J03, J05 | 550 | 50 |
-| 夜2 | J07 | 権限：ロールごとのメソッドの認可・403（5.2 の表・JAVA-AC-12） | J06 | 450 | 40 |
-| 夜2 | J08 | 共通のレイアウト・ダッシュボードの枠 | J06 | 450 | 40 |
-| 夜2 | J09 | 顧客：サービスとリポジトリ | J03, J07 | 450 | 40 |
-| 夜2 | J10 | 顧客：画面 | J08, J09 | 450 | 40 |
-| 夜2 | J11 | 料金プラン：発効月ごとの料金・履歴（追加だけ・JAVA-BR-03） | J03, J07 | 550 | 45 |
-| 夜2 | J12 | 料金プラン：画面 | J08, J11 | 450 | 40 |
-| 夜3 | J13 | 契約：サービス（開始月と終了月の整合・版） | J09, J11 | 500 | 45 |
-| 夜3 | J14 | 契約：画面 | J10, J13 | 450 | 40 |
-| 夜3 | J15 | 契約：請求の対象の判定（JAVA-BR-02・JAVA-AC-13） | J04, J13 | 400 | 35 |
-| 夜3 | J16 | 利用実績：登録・外部キーの重複の排除（JAVA-AC-05） | J13 | 500 | 40 |
-| 夜3 | J17 | 利用実績：画面 | J14, J16 | 450 | 40 |
-| 夜3 | J18 | 請求のプレビュー：計算（JAVA-AC-01） | J04, J15, J16 | 500 | 45 |
-| 夜4 | J19 | 請求のプレビュー：画面 | J17, J18 | 400 | 40 |
-| 夜4 | J20 | 月次のバッチ：契約ごとのトランザクション・SKIPPED・`billing_runs`（JAVA-AC-02・03） | J18 | 600 | 50 |
-| 夜4 | J21 | 月次のバッチ：排他（advisory lock）・並行の起動（JAVA-AC-04） | J20 | 450 | 45 |
-| 夜4 | J22 | 月次のバッチ：失敗の注入・再実行（JAVA-AC-14）・実行の画面 | J21 | 550 | 50 |
-| 夜4 | J23 | 請求の確定・確定後は変えない・競合（JAVA-AC-06・07） | J20 | 500 | 45 |
-| 夜4 | J24 | 請求の一覧と詳細の画面 | J19, J23 | 450 | 40 |
-| 夜5 | J25 | 入金の登録（JAVA-AC-08〜11） | J23 | 550 | 45 |
-| 夜5 | J26 | 入金の画面・残額 | J24, J25 | 450 | 40 |
-| 夜5 | J27 | 監査ログと画面 | J07, J23 | 500 | 45 |
-| 夜5 | J28 | バッチの履歴の画面・ダッシュボードの数字 | J22, J26 | 450 | 40 |
-| 夜5 | J29 | シナリオの試験：契約 → 実績 → 月次の請求 → 確定 → 入金（MockMvc） | J26 | 450 | 45 |
-| 夜5 | J30 | 性能（1 万契約の月次のドラフトを 5 分以内という目標を測る）・セキュリティの試験 | J22 | 450 | 45 |
-| 夜5 | J31 | README・運用と復旧の文書（PostgreSQL を入れるところから） | J29 | 350 | 30 |
-| 6日目 昼 | — | 完成の判定（要件 §10） | 全部 | — | — |
+この基本設計だけで実装の Issue が書ける部分（テストの入口・スキーマ・シード・ドメインの計算）は、詳細設計を作らない。ほかは、下の単位ごとに**夜の「設計書を書く」Issue**（D 番号）で、実装の 1 晩前に詳細設計を書かせ、人が朝に読んで直す（共通 §3.2）。形は共通 §3.3。
 
-夜の中の鎖はいちばん長くて 3 段（夜1の J01→J02→J03、夜4の J20→J21→J22）。夜1の J06 は J03 と J05 を待つ 4 段目。手直しの Issue（約 5 件）は、その朝に作り、その夜の最初に回る。
+| 単位 | 回のリポジトリでのファイル | 中身（URL・画面） | 受け持つ要件 |
+|---|---|---|---|
+| DD-01 共通とセキュリティ | `docs/design/dd-01-common-security.md` | エラーの変換と画面の文言・相関 ID・ログ・ヘルス・フォームのログイン・CSRF・ロールごとの認可（5.2 の表）・共通のレイアウト | JAVA-F-01・02、JAVA-AC-12・16 |
+| DD-02 顧客・料金プラン・契約 | `docs/design/dd-02-masters-contracts.md` | 顧客・プラン・発効月の料金・契約の URL と画面と検証 | JAVA-F-03〜05、JAVA-BR-01〜03・11、JAVA-AC-13 |
+| DD-03 利用実績と請求のプレビュー | `docs/design/dd-03-usage-preview.md` | 利用実績の登録と重複の排除・請求の対象の判定・プレビューの計算と画面 | JAVA-F-06・07、JAVA-BR-04・05、JAVA-AC-01・05 |
+| DD-04 月次のバッチ | `docs/design/dd-04-batch.md` | バッチの起動・契約ごとのトランザクション・排他・失敗の注入・`billing_runs`・実行の画面 | JAVA-F-08、JAVA-BR-06、JAVA-AC-02〜04・14 |
+| DD-05 請求の確定と入金 | `docs/design/dd-05-invoice-payment.md` | 確定・確定後の不変・競合・入金・未収額・照会の画面 | JAVA-F-09〜11、JAVA-BR-07〜10、JAVA-AC-06〜11 |
+| DD-06 監査・運用・性能 | `docs/design/dd-06-audit-ops.md` | 監査ログと画面・バッチの履歴・ダッシュボードの数字・シナリオの試験・性能の測り方・README の目次 | JAVA-F-12〜14、JAVA-AC-15、§8 の性能 |
+
+### 8.3 決めた方式（詳細設計の前に決めておく）
+
+1.1 の「使う技術と版」と一緒に、基本設計で決めておく（夜の Issue の中で決めさせない。共通 §1.2）。
+
+| # | 決めたこと | 決定 | 選ばなかった案 |
+|---|---|---|---|
+| A1 | バッチの排他 | PostgreSQL の advisory lock（対象月から鍵を作る）。重なっても一意制約で二重請求を防ぐ | ロックの表 |
+| A2 | 月の DB の型 | 月初の `date`（基本設計 3.1 の推奨） | `char(7)` |
+| A3 | 同時更新の条件 | JPA の `@Version`（楽観ロック） | 行のロック |
+| A4 | DRAFT の再計算 | 経理が明示したときだけ（基本設計 4.2） | 実績が変わったら自動で |
+| A5 | 通しの試験 | MockMvc のシナリオの試験（ブラウザの E2E は MVP では入れない） | Playwright |
 
 ## 9. 開発・デプロイ・復旧
 
@@ -283,4 +285,4 @@ flowchart TD
 - JAVA-F-07～09→invoice/batch→JAVA-AC-01～07/14。
 - JAVA-F-10/11→payment/invoice views→JAVA-AC-08～11。
 - JAVA-F-01/02/12/13→security/audit/billing_runs→JAVA-AC-12/16。
-- 初期ADR：バッチ排他の実装（DB advisory lock vs lock table）、`YearMonth` DB型、コントラクトの並行更新条件、ジョブ再実行時のドラフト再計算、MavenのバージョンとJDK配備。
+- 使う物と版は 1.1、バッチの排他・`YearMonth` の DB の型・同時更新の条件・ドラフトの再計算・通しの試験の形は 8.3 で決めた（夜の Issue の中で決めさせない）。
