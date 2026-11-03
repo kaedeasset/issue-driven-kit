@@ -119,7 +119,7 @@ Windows 10対応保証、macOS/Linuxクライアント、オフライン同期�
 .NET 向けのキットの版は作らない。**キットの Node 版を入れ、テストの入口を広げて当てる**（共通 §3）。無人の回そのもの（`claude -p`・GitHub・`js` の確認コマンド・守るファイル・前提）は言語に関係なく動くため。Unity 版（PowerShell）は使わない。
 
 1. 先にキットの準備を済ませる：**P-1**（テストの入口が `dotnet test` を回し、結果の XML を読んで `Result:` 行を出す）・**P-2**（点検が `dotnet` と Windows App SDK を見る）・**P-6**（Node 版の `CLAUDE.md` のひな形と設定を、vitest など Node の前提から外す）。済むまで、このアプリの Issue を無人の回で回さない（計画 4 章）。
-2. リポジトリに Node.js 22.14.0 と、依存を持たない `package.json`（`issueKit` の欄）を置く。確認コマンドは ```` ```js ````。
+2. 開発の PC に Node.js 22.14.0 を入れ（開発の道具。作るアプリは Node に依存しない）、テストの入口の設定を `.issue-kit/config.json` に書く（`package.json` は置かない）。確認コマンドは ```` ```js ````。
 3. 確かめるコマンド（`dotnet build -warnaserror`・`dotnet test`）は、テストの入口から回す。0 件は FAIL、わざと落とすと非 0。
 4. 機械で確かめられない画面の確認（印刷・DPI の見た目・MSIX の導入）は、機械の `PASS` と分けて人が記録する。画面のスモークテストの Issue を回す夜は、Windows をロックしない（共通 §2.1）。
 5. 昼に人が Issue を書き、夜に無人の回が連続して実装する（共通 §1.3・§4）。新しい API と画面は、実装の 1 晩前の夜に詳細設計を書かせ、人が昼に読んで直す（共通 §3.2）。詳細設計の単位は基本設計 8.2、Issue の並びは 案件のリポジトリの `docs/guides/working/issue-plan.md`（Claude Code が作る。共通 §4.4）。1 件は本体とテストで 400〜700 行。

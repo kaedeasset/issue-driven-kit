@@ -72,7 +72,7 @@ issue-driven-example-dotnet/
 ├── docs/guides/working/               # detailed-design/（詳細設計）・issue-plan.md（Issue の並び）
 ├── scripts/                            # キットの Node 版（test.mjs・issue-run/）
 ├── .github/workflows/
-├── package.json                        # 依存なし。キットの issueKit の欄だけ
+├── .issue-kit/config.json              # キットのテストの入口の設定（回すコマンドと結果の XML の場所）。package.json は置かない
 ├── .env.example                        # 接続文字列の見本（実の値はユーザーの環境変数か .env）
 ├── README.md
 └── CLAUDE.md
@@ -232,7 +232,7 @@ sequenceDiagram
 | P-2 | 点検（doctor）が `dotnet`・Windows App SDK を見る | 夜に「道具が無い」で落ちないように |
 | P-6 | Node 版の `CLAUDE.md` のひな形と実行用の設定を、vitest などの前提から外す | .NET のリポジトリに Node の決まりが混ざらないように |
 
-- 確認コマンドは ```` ```js ````（Node.js で `dotnet` を呼ぶ）。リポジトリには依存を持たない `package.json` を置く。
+- 確認コマンドは ```` ```js ````（Node.js で `dotnet` を呼ぶ）。テストの入口の設定は `.issue-kit/config.json` に書く（`package.json` は置かない。キットの準備 P-6）。
 - 画面のスモークテスト（UI Automation）は、ログインしたままの画面が要る。その Issue を回す夜は Windows をロックしない。ロックされていて動かせないときは `NOT RUN` として FAIL にせず、Issue の合格の条件にも入れない（人が別に記録する）。
 
 ### 8.2 詳細設計の単位

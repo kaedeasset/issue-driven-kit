@@ -74,7 +74,7 @@ issue-driven-example-java/
 ├── docs/inspecs/<年>/<月>/basic-design.md   # 同じ
 ├── docs/guides/working/               # detailed-design/（詳細設計）・issue-plan.md（Issue の並び）
 ├── scripts/                            # キットの Node 版（test.mjs・issue-run/）
-├── package.json                        # 依存なし。キットの issueKit の欄だけ
+├── .issue-kit/config.json              # キットのテストの入口の設定（回すコマンドと結果の XML の場所）。package.json は置かない
 ├── .env.example                        # 接続文字列の見本（実の値はユーザーの環境変数か .env）
 └── .github/workflows/
 ```
@@ -241,7 +241,7 @@ flowchart TD
 | P-2 | 点検（doctor）が JDK 25 と `mvnw.cmd` を見る |
 | P-6 | Node 版の `CLAUDE.md` のひな形と設定を、vitest など Node の前提から外す |
 
-- 確認コマンドは ```` ```js ````（Node.js で `mvnw.cmd` を呼ぶ）。リポジトリには依存を持たない `package.json` を置く。
+- 確認コマンドは ```` ```js ````（Node.js で `mvnw.cmd` を呼ぶ）。テストの入口の設定は `.issue-kit/config.json` に書く（`package.json` は置かない。キットの準備 P-6）。
 - 判定に使うテストと見本（`src/test/resources/fixtures/`）は、実装の Issue より前に別の Issue で固め、実装の Issue では守るファイルにする（共通 §4.2）。
 
 ### 8.2 詳細設計の単位

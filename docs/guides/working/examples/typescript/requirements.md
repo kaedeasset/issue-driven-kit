@@ -116,7 +116,7 @@ GitHub Issueから生成AI（Claude Code）が設計・実装・テスト・修�
 2. 課題は GitHub Issue を正とし、各 Issue に目的・変更範囲・`## 前提`・`## 合格の条件`（```` ```js ```` の確認コマンドと条件の行）を書く。
 3. **昼に人が Issue を書き、夜に無人の回が連続して実装する**（共通 §1.3）。その夜に回す Issue は前の日の昼に書く。新しい API と画面は、実装の 1 晩前の夜に詳細設計を書かせ、人が昼に読んで直す（共通 §3.2）。1 件は本体とテストで 400〜700 行（共通 §4.1）。詳細設計の単位は基本設計 11.2、Issue の並びは 案件のリポジトリの `docs/guides/working/issue-plan.md`（Claude Code が作る。共通 §4.4）。
 4. 無人の回の合格だけでは人の受け入れにしない。`claude-done` の後に人が差分を読んで閉じる。落ちた Issue は、直したら人が閉じる（共通 §4.2）。
-5. テストの入口は `node scripts/test.mjs`（`Result:` 行・PASS 0・FAIL 1・0 件は FAIL）。vitest は `issueKit.testRunner` で回す。型チェック・lint・Playwright を同じ入口で回すのは、キットの準備 P-1 の後（共通 §3）。P-1 の前は、T01 で vitest の中から型チェックを呼ぶ形にする。
+5. テストの入口は `node scripts/test.mjs`（`Result:` 行・PASS 0・FAIL 1・0 件は FAIL）。vitest は `.issue-kit/config.json` の設定で回す（キットの準備 P-6）。型チェック・lint・Playwright を同じ入口で回すのは、キットの準備 P-1 の後（共通 §3）。P-1 の前は、T01 で vitest の中から型チェックを呼ぶ形にする。
 6. 「PASS が出た」だけでなく、TS-AC 群の期待値をテストで確かめる。0 件のテストが FAIL、わざと落とすと非 0 になることを T01 で確かめる。
 7. 計測は共通 §5 のとおり（無人の回のまとめ・費用の換算・行数・テストの件数・`docs/inspecs/<年>/<月>/worklog.md` の人の時間）。
 8. Issue 本文・コミット・テストの結果・失敗とやり直しの記録を公開できる形で残す。秘密の値・PC の中のパス・モデルとの非公開の会話は公開しない。

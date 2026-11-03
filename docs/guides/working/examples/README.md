@@ -139,8 +139,9 @@ flowchart TD
 |---|---|
 | 版 | 3 本とも **Node 版**（`editions/node/`）を入れる。.NET 版・Java 版を新しく作らない。無人の回そのもの（`claude -p`・GitHub・`js` の確認コマンド・守るファイル・前提）は言語に関係なく動く |
 | 確認コマンド | Issue の確認コマンドは ```` ```js ```` の塊（仕様 9 章「版ごとに違う所」）。.NET と Java でも同じ |
-| `package.json` | .NET と Java のリポジトリにも置く（依存は持たない）。キットのテストの入口が `issueKit` の欄を読むため |
-| テストの入口 | `node scripts/test.mjs` が最後に `Result:` 行を出し、PASS 0・FAIL 1 で終わる。0 件は FAIL・わざと落とすと非 0（キットの K-5）。TS は vitest（`issueKit.testRunner`）。型チェック・lint・Playwright・`dotnet test`・`mvnw.cmd verify` を同じ入口で回すには、キットの準備 **P-1**（決めたコマンドを回して JUnit の XML を読む形）が要る |
+| 設定 | テストの入口の設定（回すコマンド・結果の XML の場所）は `.issue-kit/config.json` に書く。`package.json` は使わない（キットの準備 P-6。.NET と Java の案件に Node の物を置かない） |
+| Node.js | 開発の PC の道具。作るアプリは Node に依存しない。テストを書くのも回すのも各言語の道具のままで、Node のテストの入口が起動して結果を読むだけ |
+| テストの入口 | `node scripts/test.mjs` が最後に `Result:` 行を出し、PASS 0・FAIL 1 で終わる。0 件は FAIL・わざと落とすと非 0（キットの K-5）。TS は vitest。型チェック・lint・Playwright・`dotnet test`・`mvnw.cmd verify` を同じ入口で回すには、キットの準備 **P-1**（決めたコマンドを回して JUnit の XML を読む形）が要る |
 | まだできないこと | P-1・P-2・P-6（計画 3 章）が済むまで、.NET と Java の Issue は無人の回で回さない |
 | 版の記録 | 入れたキットの版は各リポジトリの `.issue-kit/version` |
 
@@ -277,7 +278,7 @@ Issue の並び（`issue-plan.md`）は Claude Code が書く文書なので、`
 | 1 | 案件のリポジトリを作る（回ごとに `issue-driven-example-<言語>-r<回>`。計画 E1） | 人（外への書き込みなので人が決める） |
 | 2 | キットの一式を入れる・点検（`node scripts/issue-run/doctor.mjs`） | 人と Claude Code（会話） |
 | 3 | 上流の 2 つの文書を `docs/inspecs/<年>/<月>/` に置く | 人 |
-| 4 | 初期化（基本設計 1.1 の版で入れる・PostgreSQL の DB とユーザー・`package.json` の `issueKit`）。入らない版があれば上流に戻す | 人と Claude Code（会話） |
+| 4 | 初期化（基本設計 1.1 の版で入れる・PostgreSQL の DB とユーザー・`.issue-kit/config.json`）。入らない版があれば上流に戻す | 人と Claude Code（会話） |
 | 5 | Issue の並びを作り、夜1の Issue を作る（4.4） | 人と Claude Code（会話） |
 | 6 | 昼と夜をくり返す（1.3・4.3） | 人・無人の回 |
 
