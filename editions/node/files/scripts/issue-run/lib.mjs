@@ -274,23 +274,19 @@ export function pickNewResults(before, after) {
   return (after ?? []).filter((e) => { const o = old.get(e.path); return !o || o.mtimeMs !== e.mtimeMs || o.size !== e.size; }).map((e) => e.path);
 }
 
-// 指示文の確かめの行に出す道具の名前（vitest・node --test・command の先頭の名前）。config は parseTestConfig の config
+// 指示文の確かめの行に出す道具の名前（vitest・node --test・command の先頭の名前）。config は parseTestConfig の config。
+// 設定が無い・読めない（null）ときは設定の置き場を出す（点検とテストの入口が直し方を出す）
 export function testRunnerLabel(config) {
-  const t = config?.test ?? {};
-  if (t.runner === 'node') return 'node --test';
-  if (t.runner === 'command') return String(t.command?.[0] ?? 'command').replaceAll('\\', '/').split('/').pop();
-  return 'vitest';
+  const t = config?.test;
+  if (t?.runner === 'vitest') return 'vitest';
+  if (t?.runner === 'node') return 'node --test';
+  if (t?.runner === 'command') return String(t.command?.[0] ?? 'command').replaceAll('\\', '/').split('/').pop();
+  return '.issue-kit/config.json の道具';
 }
 
-// 指示文の作業場所の行（仕様 9 章）。確かめの行は package.json の issueKit.testRunner に合わせる（無い・読めなければ vitest。test.mjs と同じ）
-export function testRunnerOf(pkgText) {
-  if (pkgText == null) return 'vitest';
-  try { return JSON.parse(pkgText)?.issueKit?.testRunner ?? 'vitest'; } catch { return 'vitest'; }
-}
-
-export function workspaceStateText(testRunner) {
-  const runner = testRunner === 'node' ? 'node --test' : 'vitest';
-  return `この作業場所は使用中にしない。確かめは node scripts/test.mjs（${runner}）で、変えた所に関係するものだけ --filter で回す。wrangler dev などの開発サーバーを起動したままにしない。`;
+// 指示文の作業場所の行（仕様 9 章）。label は testRunnerLabel の名前
+export function workspaceStateText(label) {
+  return `この作業場所は使用中にしない。確かめは node scripts/test.mjs（${label}）で、変えた所に関係するものだけ --filter で回す。wrangler dev などの開発サーバーを起動したままにしない。`;
 }
 
 export function continuePrompt(reason, state) {

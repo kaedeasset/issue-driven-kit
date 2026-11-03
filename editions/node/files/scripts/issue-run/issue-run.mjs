@@ -186,12 +186,13 @@ function otherRunningIssues() {
   return nums;
 }
 
-// 作業場所の使用中の判定（仕様 9 章）。Node 版は使用中にしない。確かめの行は package.json の testRunner に合わせる
+// 作業場所の使用中の判定（仕様 9 章）。Node 版は使用中にしない。確かめの行はテストの入口の設定 .issue-kit/config.json の runner に合わせる
 function workspaceState() {
-  const pkg = join(ROOT, 'package.json');
+  const cfg = join(ROOT, '.issue-kit', 'config.json');
   let text = null;
-  try { if (existsSync(pkg)) text = L.readText(pkg); } catch { /* 読めなければ vitest（test.mjs と同じ既定） */ }
-  return L.workspaceStateText(L.testRunnerOf(text));
+  try { if (existsSync(cfg)) text = L.readText(cfg); } catch { /* 読めなければ設定の置き場を出す（test.mjs が直し方を出す） */ }
+  const parsed = L.parseTestConfig(text);
+  return L.workspaceStateText(L.testRunnerLabel(parsed.ok ? parsed.config : null));
 }
 
 async function invokeClaude(prompt, minutes, outFile, sessionId, resume, env) {

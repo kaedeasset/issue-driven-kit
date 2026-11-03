@@ -16,7 +16,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const kitRoot = resolve(here, '../..');
 const filesRoot = join(here, 'files');
 // 利用先が中身を書き足すファイル。--update でも上書きせず、差があれば知らせる。初めて入れるときにぶつかったら、キットの物を .kit の名前で横に置く
-const USER_OWNED = ['CLAUDE.md'];
+// .issue-kit/config.json はテストの入口の設定（ひな形は vitest。利用先が自分の道具に書き換える。キットの仕様 11 章）
+const USER_OWNED = ['CLAUDE.md', '.issue-kit/config.json'];
 // 写した後に作る空の置き場（.gitkeep を置く）
 const EMPTY_DIRS = ['docs/inspecs', 'docs/reports'];
 // .gitignore に無ければ足す行（ファイルごとは写さない。たいてい既にあるため）

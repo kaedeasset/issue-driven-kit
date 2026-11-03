@@ -107,7 +107,7 @@ test('作業場所の POSIX 形', () => {
 const denyPaths = () => lib.denyEditPaths(read(join(nodeRoot, 'files/.claude/issue-run/settings.json')));
 
 test('実行用の設定（Node 版）: deny の Edit のパスを読む', () => {
-  assert.deepEqual(denyPaths(), ['CLAUDE.md', '.claude/**', 'docs/inspecs/**']);
+  assert.deepEqual(denyPaths(), ['CLAUDE.md', '.claude/**', 'docs/inspecs/**', '.issue-kit/**']);
   // Bash(…) や作業場所の外の Edit は読まない
   assert.deepEqual(lib.denyEditPaths(JSON.stringify({ permissions: { deny: ['Bash(rm:*)', 'Edit(src/a.ts)', 'Write(//{{REPO}}/x/**)'] } })), ['x/**']);
 });
@@ -143,18 +143,6 @@ test('利用上限と認証切れの見分け', () => {
   assert.ok(lib.isLimitError(null, "You've hit your session limit · resets 11:30am"));
   assert.ok(!lib.isLimitError({ is_error: false }, 'rate limit'));
   assert.ok(lib.isAuthError('OAuth session expired'));
-});
-
-test('指示文の確かめの行: testRunner が node なら node --test と書く', () => {
-  const line = lib.workspaceStateText(lib.testRunnerOf(JSON.stringify({ issueKit: { testRunner: 'node', testFiles: 'tests/*.test.mjs' } })));
-  assert.ok(line.includes('node scripts/test.mjs（node --test）'), line);
-  assert.doesNotMatch(line, /vitest/);
-});
-
-test('指示文の確かめの行: testRunner が無いか vitest なら vitest と書く', () => {
-  for (const pkg of [JSON.stringify({ issueKit: { testRunner: 'vitest' } }), JSON.stringify({ name: 'x' }), '{ 読めない', null]) {
-    assert.ok(lib.workspaceStateText(lib.testRunnerOf(pkg)).includes('node scripts/test.mjs（vitest）'), String(pkg));
-  }
 });
 
 test('報告の「合格」の行', () => {
@@ -286,7 +274,7 @@ test('無人の回（Node 版）: 前提の確かめは書き込みの権限の�
 // ---- 外に触る部品（GitHub と Claude を呼ばない範囲） ----
 
 const nodeFiles = [
-  'CLAUDE.md',
+  'CLAUDE.md', '.issue-kit/config.json',
   '.claude/issue-run/prompt.md', '.claude/issue-run/settings.json', '.claude/issue-run/stop-hook.mjs',
   ...['commit', 'design-cycle', 'document-authoring', 'file-header', 'github-issue', 'lane-sync', 'pr', 'push', 'save-report']
     .map((s) => `.claude/skills/${s}/SKILL.md`),
@@ -467,11 +455,48 @@ test('Stop hook（Node 版）: 押し返す・終わらせる・守るファイ�
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('テストの入口（Node 版）: vitest が無ければ FAIL', () => {
+// テストの入口を回す小さな作業場所を作る（scripts/test.mjs と、それが読み込む lib.mjs・proc.mjs を写す）。config が null なら設定を置かない
+function entryProject(config, { pkg } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'kit-test-'));
+  mkdirSync(join(dir, 'scripts/issue-run'), { recursive: true });
+  writeFileSync(join(dir, 'scripts/test.mjs'), readFileSync(join(nodeRoot, 'files/scripts/test.mjs')));
+  for (const s of ['lib', 'proc']) writeFileSync(join(dir, `scripts/issue-run/${s}.mjs`), readFileSync(join(nodeRoot, `files/scripts/issue-run/${s}.mjs`)));
+  if (config) { mkdirSync(join(dir, '.issue-kit')); writeFileSync(join(dir, '.issue-kit/config.json'), JSON.stringify(config)); }
+  if (pkg) writeFileSync(join(dir, 'package.json'), JSON.stringify(pkg));
+  return dir;
+}
+const lastLine = (r) => r.stdout.trim().split(/\r?\n/).at(-1);
+
+test('テストの入口（Node 版）: 設定が無ければ FAIL', () => {
+  const dir = entryProject(null);
   try {
-    mkdirSync(join(dir, 'scripts'));
-    writeFileSync(join(dir, 'scripts/test.mjs'), readFileSync(join(nodeRoot, 'files/scripts/test.mjs')));
+    const r = node([join(dir, 'scripts/test.mjs')], { cwd: dir });
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(lastLine(r), /^Result: FAIL \(\.issue-kit\/config\.json が無い。テストの道具を書く（例 \{ "test": \{ "runner": "vitest" \} \}）/);
+    // 読めない・形が違うときも直し方を出して FAIL
+    mkdirSync(join(dir, '.issue-kit'));
+    writeFileSync(join(dir, '.issue-kit/config.json'), '{ 読めない');
+    assert.match(lastLine(node([join(dir, 'scripts/test.mjs')], { cwd: dir })), /^Result: FAIL \(\.issue-kit\/config\.json が JSON として読めない/);
+    writeFileSync(join(dir, '.issue-kit/config.json'), JSON.stringify({ test: { runner: 'jest' } }));
+    assert.match(lastLine(node([join(dir, 'scripts/test.mjs')], { cwd: dir })), /^Result: FAIL \(\.issue-kit\/config\.json の test\.runner は vitest・node・command/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（Node 版）: package.json の issueKit を読まない', () => {
+  const dir = entryProject(null, { pkg: { type: 'module', issueKit: { testRunner: 'node', testFiles: 'tests/*.test.mjs' } } });
+  try {
+    mkdirSync(join(dir, 'tests'));
+    writeFileSync(join(dir, 'tests/a.test.mjs'), "import { test } from 'node:test';\ntest('通る', () => {});\n");
+    const r = node([join(dir, 'scripts/test.mjs')], { cwd: dir });
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(lastLine(r), /^Result: FAIL \(\.issue-kit\/config\.json が無い/);
+    assert.ok(!existsSync(join(dir, '.issue-run/test-results/junit.xml')), '古い欄で回した');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（Node 版）: vitest が無ければ FAIL', () => {
+  const dir = entryProject({ test: { runner: 'vitest' } });
+  try {
     const r = node([join(dir, 'scripts/test.mjs')], { cwd: dir });
     assert.equal(r.status, 1);
     assert.match(r.stdout, /Result: FAIL \(vitest が無い/);
@@ -480,11 +505,8 @@ test('テストの入口（Node 版）: vitest が無ければ FAIL', () => {
 
 // node --test で回す小さなプロジェクトを作り、テストの入口を回す
 function nodeTestProject(tests) {
-  const dir = mkdtempSync(join(tmpdir(), 'kit-test-'));
-  mkdirSync(join(dir, 'scripts'));
+  const dir = entryProject({ test: { runner: 'node', files: ['tests/*.test.mjs'] } }, { pkg: { type: 'module' } });
   mkdirSync(join(dir, 'tests'));
-  writeFileSync(join(dir, 'scripts/test.mjs'), readFileSync(join(nodeRoot, 'files/scripts/test.mjs')));
-  writeFileSync(join(dir, 'package.json'), JSON.stringify({ type: 'module', issueKit: { testRunner: 'node', testFiles: 'tests/*.test.mjs' } }));
   for (const [name, body] of Object.entries(tests)) writeFileSync(join(dir, 'tests', name), `import { test } from 'node:test';\nimport assert from 'node:assert/strict';\n${body}\n`);
   return dir;
 }
@@ -508,7 +530,7 @@ test('テストの入口（Node 版）: node:test で名前で絞れる', () => 
   try {
     const r = node([join(dir, 'scripts/test.mjs'), '--filter', '通るもの'], { cwd: dir });
     assert.equal(r.status, 0, r.stdout);
-    assert.match(r.stdout.trim().split(/\r?\n/).at(-1), /^Result: PASS 1\/1$/);
+    assert.match(lastLine(r), /^Result: PASS 1\/1$/);
     assert.match(readFileSync(join(dir, '.issue-run/test-results/junit.xml'), 'utf8'), /name="通るもの"/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -518,30 +540,239 @@ test('テストの入口（Node 版）: node:test で落ちる試験があれば
   try {
     let r = node([join(dir, 'scripts/test.mjs')], { cwd: dir });
     assert.equal(r.status, 1, r.stdout);
-    assert.match(r.stdout.trim().split(/\r?\n/).at(-1), /^Result: FAIL \(1\/2\)$/);
+    assert.match(lastLine(r), /^Result: FAIL \(1\/2\)$/);
     // 全部通れば PASS
     writeFileSync(join(dir, 'tests/a.test.mjs'), "import { test } from 'node:test';\ntest('通るもの', () => {});\n");
     r = node([join(dir, 'scripts/test.mjs')], { cwd: dir });
     assert.equal(r.status, 0, r.stdout);
-    assert.match(r.stdout.trim().split(/\r?\n/).at(-1), /^Result: PASS 1\/1$/);
+    assert.match(lastLine(r), /^Result: PASS 1\/1$/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('点検（Node 版）: node:test のプロジェクトで vitest を求めない', () => {
+// 偽のテストの道具（command の runner 用）。引数: <様子> [--only <名前>]。out/raw に JUnit の XML を回ごとに別の名前で書く。
+// 様子: pass（2 本通る）・fail（1 本落ちる）・zero（testcase が無い）・none（何も書かない）・pass-exit1（通る XML を書いて終了コード 1）
+const FAKE_TOOL = `import { mkdirSync, writeFileSync } from 'node:fs';
+const [mode, flag, only] = process.argv.slice(2);
+const cases = { pass: ['<testcase name="足せる" classname="M"/>', '<testcase name="引ける" classname="M"/>'],
+  fail: ['<testcase name="足せる" classname="M"/>', '<testcase name="落ちる" classname="M"><failure message="x"/></testcase>'],
+  zero: [], 'pass-exit1': ['<testcase name="足せる" classname="M"/>', '<testcase name="引ける" classname="M"/>'] }[mode];
+console.log('fake tool: ' + mode);
+if (cases) {
+  const picked = flag === '--only' ? cases.filter((c) => c.includes('name="' + only + '"')) : cases;
+  mkdirSync('out/raw', { recursive: true });
+  writeFileSync('out/raw/run-' + process.pid + '-' + Date.now() + '.xml', '<?xml version="1.0"?><testsuites><testsuite name="M">' + picked.join('') + '</testsuite></testsuites>');
+}
+process.exit(mode === 'pass-exit1' ? 1 : 0);
+`;
+function commandProject(mode, extra = {}) {
+  const dir = entryProject({ test: { runner: 'command', command: ['node', 'tool.mjs', mode], resultDirs: ['out/raw'], ...extra } });
+  writeFileSync(join(dir, 'tool.mjs'), FAKE_TOOL);
+  return dir;
+}
+const entry = (dir, ...args) => node([join(dir, 'scripts/test.mjs'), ...args], { cwd: dir });
+
+test('テストの入口（command）: 全部通れば PASS', () => {
+  const dir = commandProject('pass');
+  try {
+    const r = entry(dir);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.equal(lastLine(r), 'Result: PASS 2/2');
+    assert.match(r.stdout, /fake tool: pass/, '道具の出力を画面へ流していない');
+    const merged = readFileSync(join(dir, '.issue-run/test-results/junit.xml'), 'utf8');
+    assert.match(merged, /<testcase name="足せる" classname="M"\/>/);
+    assert.match(merged, /<testsuite name="out\/raw\/run-/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（command）: 1 本落ちれば FAIL', () => {
+  const dir = commandProject('fail');
+  try {
+    const r = entry(dir);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.equal(lastLine(r), 'Result: FAIL (1/2)');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（command）: 0 件なら FAIL', () => {
+  const dir = commandProject('zero');
+  try {
+    const r = entry(dir);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(lastLine(r), /^Result: FAIL \(0\/0（テストが 0 件）\)$/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（command）: 結果の XML が無ければ FAIL', () => {
+  const dir = commandProject('none');
+  try {
+    const r = entry(dir);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(lastLine(r), /^Result: FAIL \(結果の XML が無い（resultDirs: out\/raw）・node の終了コード 0\)$/);
+    // 道具が見つからないときも FAIL（終了コードと理由）
+    writeFileSync(join(dir, '.issue-kit/config.json'), JSON.stringify({ test: { runner: 'command', command: ['no-such-tool-kit-test'], resultDirs: ['out/raw'] } }));
+    const n = entry(dir);
+    assert.equal(n.status, 1, n.stdout + n.stderr);
+    assert.match(lastLine(n), /^Result: FAIL \(結果の XML が無い（resultDirs: out\/raw）・no-such-tool-kit-test の終了コード \d+/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（command）: 前の回の XML を読まない', () => {
+  const dir = commandProject('pass');
+  try {
+    assert.equal(entry(dir).status, 0);
+    // 前の回の XML が残っていて、道具が何も書かない → FAIL。前の回の XML は消さない
+    writeFileSync(join(dir, '.issue-kit/config.json'), JSON.stringify({ test: { runner: 'command', command: ['node', 'tool.mjs', 'none'], resultDirs: ['out/raw'] } }));
+    const r = entry(dir);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(lastLine(r), /^Result: FAIL \(結果の XML が無い/);
+    assert.equal(readdirSync(join(dir, 'out/raw')).length, 1, '前の回の XML を消した');
+    assert.ok(!existsSync(join(dir, '.issue-run/test-results/junit.xml')), '前の回の junit.xml が残っている');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（command）: すぐに回し直しても二重に数えない', () => {
+  const dir = commandProject('pass');
+  try {
+    assert.equal(lastLine(entry(dir)), 'Result: PASS 2/2');
+    const r = entry(dir);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.equal(lastLine(r), 'Result: PASS 2/2');
+    assert.equal(readdirSync(join(dir, 'out/raw')).length, 2, '偽の道具が回ごとに別の名前で書いていない');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（command）: XML が通っても道具が非 0 なら FAIL', () => {
+  const dir = commandProject('pass-exit1');
+  try {
+    const r = entry(dir);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.equal(lastLine(r), 'Result: FAIL (2/2)');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（command）: filterArgs で名前で絞る・無ければ FAIL', () => {
+  const dir = commandProject('fail', { filterArgs: ['--only', '{filter}'] });
+  try {
+    let r = entry(dir, '--filter', '足せる');
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.equal(lastLine(r), 'Result: PASS 1/1');
+    r = entry(dir, '--filter', 'どれにも当たらない名前');
+    assert.match(lastLine(r), /^Result: FAIL \(0\/0/);
+    // --file は受け付けない
+    r = entry(dir, '--file', 'tool.mjs');
+    assert.match(lastLine(r), /^Result: FAIL \(command では --file を使えない/);
+    // filterArgs が無ければ名前で絞れない
+    writeFileSync(join(dir, '.issue-kit/config.json'), JSON.stringify({ test: { runner: 'command', command: ['node', 'tool.mjs', 'pass'], resultDirs: ['out/raw'] } }));
+    r = entry(dir, '--filter', '足せる');
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(lastLine(r), /^Result: FAIL \(command で名前で絞れない（\.issue-kit\/config\.json の test\.filterArgs が無い/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('テストの入口（command）: Windows で .cmd の道具を起動できる', { skip: process.platform !== 'win32' && 'Windows だけ' }, () => {
+  const dir = entryProject({ test: { runner: 'command', command: ['tool.cmd', 'a b'], resultDirs: ['out/raw'] } });
+  try {
+    writeFileSync(join(dir, 'tool.mjs'), FAKE_TOOL);
+    // 引数（空白入り）を受け取り、偽の道具を pass で回す .cmd
+    writeFileSync(join(dir, 'tool.cmd'), `@echo off\r\necho arg=%~1\r\n"${process.execPath}" "%~dp0tool.mjs" pass\r\n`);
+    const r = entry(dir);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /arg=a b/);
+    assert.equal(lastLine(r), 'Result: PASS 2/2');
+    // cmd.exe を通す道具の引数に % があれば起動せずに FAIL
+    writeFileSync(join(dir, '.issue-kit/config.json'), JSON.stringify({ test: { runner: 'command', command: ['tool.cmd', '50%'], resultDirs: ['out/raw'] } }));
+    const p = entry(dir);
+    assert.equal(p.status, 1, p.stdout + p.stderr);
+    assert.match(lastLine(p), /^Result: FAIL \(cmd\.exe を通す道具の引数に % と " は使えない/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// 点検を一時の作業場所で回す（doctor.mjs と、それが読み込む lib.mjs・proc.mjs を写す）。files は { パス: 中身 }
+function doctorIn(files, env = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'kit-doctor-'));
   try {
     mkdirSync(join(dir, 'scripts/issue-run'), { recursive: true });
-    for (const s of ['doctor', 'proc']) writeFileSync(join(dir, `scripts/issue-run/${s}.mjs`), readFileSync(join(nodeRoot, `files/scripts/issue-run/${s}.mjs`)));
-    const pkg = { type: 'module', scripts: { test: 'node scripts/test.mjs' } };
-    writeFileSync(join(dir, 'package.json'), JSON.stringify({ ...pkg, issueKit: { testRunner: 'node', testFiles: 'tests/*.test.mjs' } }));
-    let r = node([join(dir, 'scripts/issue-run/doctor.mjs')], { cwd: dir });
-    assert.doesNotMatch(r.stdout, /vitest が無い|vitest が入っていない/);
-    assert.match(r.stdout, /OK {3}テストの仕組み: node --test/);
-    // 欄が無ければ今までどおり vitest を求める
-    writeFileSync(join(dir, 'package.json'), JSON.stringify(pkg));
-    r = node([join(dir, 'scripts/issue-run/doctor.mjs')], { cwd: dir });
-    assert.match(r.stdout, /NG {3}vitest: devDependencies に vitest が無い/);
+    for (const s of ['doctor', 'lib', 'proc']) writeFileSync(join(dir, `scripts/issue-run/${s}.mjs`), readFileSync(join(nodeRoot, `files/scripts/issue-run/${s}.mjs`)));
+    for (const [p, body] of Object.entries(files)) { mkdirSync(dirname(join(dir, p)), { recursive: true }); writeFileSync(join(dir, p), body); }
+    return node([join(dir, 'scripts/issue-run/doctor.mjs')], { cwd: dir, env: { ...process.env, ISSUE_KIT_LATEST_COMMIT: '', ...env } }).stdout;
   } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+const testLines = (out) => out.split(/\r?\n/).filter((l) => / (テストの仕組み|vitest|node_modules): /.test(l));
+
+test('点検（Node 版）: テストの仕組みを設定から見る', () => {
+  const pkg = JSON.stringify({ type: 'module', scripts: { test: 'node scripts/test.mjs' } });
+  const cfg = (test) => JSON.stringify({ test });
+  // 設定が無い → NG（package.json の古い欄があっても読まない）
+  let out = doctorIn({ 'package.json': JSON.stringify({ ...JSON.parse(pkg), issueKit: { testRunner: 'node', testFiles: 'tests/*.test.mjs' } }) });
+  assert.match(out, /NG {3}テストの仕組み: \.issue-kit\/config\.json が無い/);
+  assert.match(out, /OK {3}npm test: node scripts\/test\.mjs/);
+  // vitest → 依存と node_modules を見る
+  out = doctorIn({ 'package.json': pkg, '.issue-kit/config.json': cfg({ runner: 'vitest' }) });
+  assert.match(out, /OK {3}テストの仕組み: vitest/);
+  assert.match(out, /NG {3}vitest: devDependencies に vitest が無い/);
+  // node → vitest を求めない
+  out = doctorIn({ 'package.json': pkg, '.issue-kit/config.json': cfg({ runner: 'node', files: ['tests/*.test.mjs'] }) });
+  assert.match(out, /OK {3}テストの仕組み: node --test（test\.files: tests\/\*\.test\.mjs）/);
+  assert.deepEqual(testLines(out).filter((l) => /vitest/.test(l)), []);
+  // command → 道具の実体（作業場所の直下・PATH）。package.json が無くても npm test を見ない
+  out = doctorIn({ '.issue-kit/config.json': cfg({ runner: 'command', command: ['tools/mvnw.cmd', 'verify'], resultDirs: ['target/surefire-reports'] }), 'tools/mvnw.cmd': '@echo off\r\n' });
+  assert.match(out, /OK {3}テストの仕組み: command（tools\/mvnw\.cmd verify・道具 /);
+  assert.doesNotMatch(out, /npm test|package\.json/);
+  out = doctorIn({ '.issue-kit/config.json': cfg({ runner: 'command', command: ['git', 'status'], resultDirs: ['r'] }) });
+  assert.match(out, /OK {3}テストの仕組み: command（git status・道具 /);
+  out = doctorIn({ '.issue-kit/config.json': cfg({ runner: 'command', command: ['no-such-tool-kit-test'], resultDirs: ['r'] }) });
+  assert.match(out, /NG {3}テストの仕組み: command の道具 no-such-tool-kit-test が見つからない/);
+  out = doctorIn({ '.issue-kit/config.json': cfg({ runner: 'command', command: ['./mvnw'], resultDirs: ['r'] }) });
+  assert.match(out, /NG {3}テストの仕組み: command の道具 \.\/mvnw が見つからない/);
+});
+
+test('点検（Node 版）: deny に .issue-kit が無ければ NG', () => {
+  const settings = read(join(nodeRoot, 'files/.claude/issue-run/settings.json'));
+  const s = JSON.parse(settings);
+  assert.ok(s.permissions.deny.includes('Edit(//{{REPO}}/.issue-kit/**)') && s.permissions.deny.includes('Write(//{{REPO}}/.issue-kit/**)'), '版の設定に .issue-kit の deny が無い');
+  const ok = doctorIn({ '.claude/issue-run/settings.json': settings });
+  assert.match(ok, /OK {3}設定: deny /);
+  for (const drop of ['Edit(//{{REPO}}/.issue-kit/**)', 'Write(//{{REPO}}/.issue-kit/**)']) {
+    const without = { ...s, permissions: { ...s.permissions, deny: s.permissions.deny.filter((d) => d !== drop) } };
+    const out = doctorIn({ '.claude/issue-run/settings.json': JSON.stringify(without) });
+    assert.ok(out.split(/\r?\n/).some((l) => l.startsWith('NG   設定: deny に無い: ') && l.includes(drop)), `${drop}\n${out}`);
+  }
+});
+
+test('入れる脚本（Node 版）: 設定のひな形を写し、--update で残す', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'kit-node-config-'));
+  try {
+    assert.equal(spawnSync('git', ['init', '-q', dir]).status, 0);
+    const inst = join(nodeRoot, 'install.mjs');
+    const tpl = readFileSync(join(nodeRoot, 'files/.issue-kit/config.json'));
+    assert.deepEqual(JSON.parse(tpl.toString('utf8')), { test: { runner: 'vitest' } });
+    // 初めて入れる: ひな形を写す
+    const r = node([inst, '--target', dir]);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.deepEqual(readFileSync(join(dir, '.issue-kit/config.json')), tpl);
+    // 利用先が書き換えた後の --update: 残して知らせる
+    const mine = JSON.stringify({ test: { runner: 'node', files: ['tests/*.test.mjs'] } });
+    writeFileSync(join(dir, '.issue-kit/config.json'), mine);
+    const u = node([inst, '--target', dir, '--update']);
+    assert.equal(u.status, 0, u.stdout + u.stderr);
+    assert.match(u.stdout, /^keep +\.issue-kit\/config\.json$/m);
+    assert.match(lastLine(u), /残した 1 件/);
+    assert.equal(read(join(dir, '.issue-kit/config.json')), mine, '利用先の設定を上書きした');
+    assert.ok(existsSync(join(dir, '.issue-kit/version')), '版のファイルが無い');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+  // 初めて入れるときに既に設定があれば、残してキットの物を横に置く
+  const dir2 = mkdtempSync(join(tmpdir(), 'kit-node-config-aside-'));
+  try {
+    assert.equal(spawnSync('git', ['init', '-q', dir2]).status, 0);
+    mkdirSync(join(dir2, '.issue-kit'));
+    const mine = JSON.stringify({ test: { runner: 'command', command: ['dotnet', 'test'], resultDirs: ['r'] } });
+    writeFileSync(join(dir2, '.issue-kit/config.json'), mine);
+    const r = node([join(nodeRoot, 'install.mjs'), '--target', dir2]);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /^aside +\.issue-kit\/config\.json → \.issue-kit\/config\.kit\.json$/m);
+    assert.equal(read(join(dir2, '.issue-kit/config.json')), mine);
+    assert.ok(existsSync(join(dir2, '.issue-kit/config.kit.json')));
+  } finally { rmSync(dir2, { recursive: true, force: true }); }
 });
 
 test('入れる脚本（Node 版）: 版のファイルにキットのリポジトリを書く', () => {
@@ -636,7 +867,7 @@ function doctorKitVersion(version, latest) {
   const dir = mkdtempSync(join(tmpdir(), 'kit-doctor-ver-'));
   try {
     mkdirSync(join(dir, 'scripts/issue-run'), { recursive: true });
-    for (const s of ['doctor', 'proc']) writeFileSync(join(dir, `scripts/issue-run/${s}.mjs`), readFileSync(join(nodeRoot, `files/scripts/issue-run/${s}.mjs`)));
+    for (const s of ['doctor', 'lib', 'proc']) writeFileSync(join(dir, `scripts/issue-run/${s}.mjs`), readFileSync(join(nodeRoot, `files/scripts/issue-run/${s}.mjs`)));
     spawnSync('git', ['init', '-q', dir]);
     spawnSync('git', ['-C', dir, 'remote', 'add', 'origin', 'https://github.com/someone/app.git']);
     if (version) { mkdirSync(join(dir, '.issue-kit')); writeFileSync(join(dir, '.issue-kit/version'), JSON.stringify(version)); }
@@ -770,6 +1001,13 @@ test('指示文の確かめの行: runner に合わせた名前を出す', () =>
   assert.equal(lib.testRunnerLabel({ test: { runner: 'command', command: ['dotnet', 'test'], resultDirs: ['r'] } }), 'dotnet');
   assert.equal(lib.testRunnerLabel({ test: { runner: 'command', command: ['tools\\mvnw.cmd', '-q', 'verify'], resultDirs: ['r'] } }), 'mvnw.cmd');
   assert.equal(lib.testRunnerLabel({ test: { runner: 'command', command: ['./mvnw', 'verify'], resultDirs: ['r'] } }), 'mvnw');
+  assert.equal(lib.testRunnerLabel(null), '.issue-kit/config.json の道具', '設定が無ければ設定の置き場を出す');
+  // 指示文の行に入る
+  const line = lib.workspaceStateText(lib.testRunnerLabel({ test: { runner: 'node', files: ['tests/*.test.mjs'] } }));
+  assert.ok(line.includes('node scripts/test.mjs（node --test）'), line);
+  assert.doesNotMatch(line, /vitest/);
+  assert.ok(lib.workspaceStateText('dotnet').includes('node scripts/test.mjs（dotnet）'));
+  assert.equal(lib.testRunnerOf, undefined, 'testRunnerOf は消した');
 });
 
 test('確認コマンドの手伝い: 長い出力でも Result 行を読む', () => {

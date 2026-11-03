@@ -5,9 +5,10 @@
 //   node scripts/issue-run/doctor.mjs --run-tests  # さらにテストの入口を回す
 // 1 行ずつ OK / WARN / NG を出し、最後の行が Result: PASS（NG 0）か Result: FAIL。終了コード 0 / 1。
 import { existsSync, readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { run, resolveCmd, which } from './proc.mjs';
+import { parseTestConfig } from './lib.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const isWin = process.platform === 'win32';
@@ -106,7 +107,8 @@ else {
     const s = JSON.parse(raw);
     const deny = s.permissions?.deny ?? [];
     const need = ['AskUserQuestion', 'Bash(git push:*)', 'PowerShell(git push:*)', 'Edit(//{{REPO}}/CLAUDE.md)', 'Write(//{{REPO}}/.claude/**)',
-      'Edit(//{{REPO}}/docs/inspecs/**)', 'Write(//{{REPO}}/docs/inspecs/**)', 'Bash(wrangler deploy:*)'];
+      'Edit(//{{REPO}}/docs/inspecs/**)', 'Write(//{{REPO}}/docs/inspecs/**)', 'Edit(//{{REPO}}/.issue-kit/**)', 'Write(//{{REPO}}/.issue-kit/**)',
+      'Bash(wrangler deploy:*)'];
     const lack = need.filter((x) => !deny.includes(x));
     if (lack.length) report('NG', '設定', `deny に無い: ${lack.join(', ')}`);
     else if (deny.includes('Edit(CLAUDE.md)') || deny.includes('Edit(**/CLAUDE.md)')) report('NG', '設定', '裸の CLAUDE.md の deny がある（どの深さにも効き、作る物の中の CLAUDE.md まで断る）');
@@ -116,22 +118,35 @@ else {
   } catch (e) { report('NG', '設定', `JSON として読めない: ${e.message}`); }
 }
 
-// --- テストのしくみ ---
+// --- テストのしくみ（.issue-kit/config.json。仕様 11 章） ---
+const cfgPath = join(root, '.issue-kit', 'config.json');
+let cfgText = null;
+try { if (existsSync(cfgPath)) cfgText = readFileSync(cfgPath, 'utf8'); } catch { /* 読めなければ無いと同じに扱う */ }
+const parsed = parseTestConfig(cfgText);
 const pkgPath = join(root, 'package.json');
-if (!existsSync(pkgPath)) report('NG', 'package.json', '無い');
+let pkg = null;
+if (existsSync(pkgPath)) {
+  try { pkg = JSON.parse(readFileSync(pkgPath, 'utf8')); } catch (e) { report('NG', 'package.json', `JSON として読めない: ${e.message}`); }
+}
+if (!parsed.ok) report('NG', 'テストの仕組み', parsed.why);
 else {
-  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-  const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
-  const runner = pkg.issueKit?.testRunner ?? 'vitest';
-  if (runner === 'node') {
-    const files = [pkg.issueKit.testFiles ?? []].flat();
-    if (files.length) report('OK', 'テストの仕組み', `node --test（issueKit.testFiles: ${files.join(' ')}）`);
-    else report('NG', 'テストの仕組み', 'issueKit.testRunner が node なのに issueKit.testFiles が無い → 例 "testFiles": "tests/*.test.mjs"');
-  } else if (runner !== 'vitest') report('NG', 'テストの仕組み', `issueKit.testRunner は vitest か node（いま: ${runner}）`);
-  else {
+  const t = parsed.config.test;
+  if (t.runner === 'vitest') {
+    report('OK', 'テストの仕組み', 'vitest（.issue-kit/config.json）');
+    const deps = { ...(pkg?.dependencies ?? {}), ...(pkg?.devDependencies ?? {}) };
     if (deps.vitest) report('OK', 'vitest', `devDependencies ${deps.vitest}`); else report('NG', 'vitest', 'devDependencies に vitest が無い → npm install -D vitest');
     if (!existsSync(join(root, 'node_modules', 'vitest'))) report('NG', 'node_modules', 'vitest が入っていない → npm install');
+  } else if (t.runner === 'node') report('OK', 'テストの仕組み', `node --test（test.files: ${t.files.join(' ')}）`);
+  else {
+    // 道具の実体: node はこの Node・パスの形か作業場所の直下にある物（mvnw.cmd など）はそこ・ほかは PATH
+    const name = t.command[0];
+    const local = resolve(root, name);
+    const found = name === 'node' ? process.execPath : existsSync(local) ? local : /[\\/]/.test(name) ? null : which(name);
+    if (found) report('OK', 'テストの仕組み', `command（${t.command.join(' ')}・道具 ${found}・結果 ${t.resultDirs.join(' ')}）`);
+    else report('NG', 'テストの仕組み', `command の道具 ${name} が見つからない（PATH にも作業場所の直下にも無い）→ 入れるか、.issue-kit/config.json の test.command を直す`);
   }
+}
+if (pkg) {
   if (/scripts\/test\.mjs/.test(pkg.scripts?.test ?? '')) report('OK', 'npm test', pkg.scripts.test);
   else report('WARN', 'npm test', `scripts.test が scripts/test.mjs を呼んでいない（いま: ${pkg.scripts?.test ?? '無い'}）`);
 }
