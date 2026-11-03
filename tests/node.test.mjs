@@ -723,6 +723,10 @@ test('JUnit の数え方: CDATA と system-out の中の文字で数えを誤ら
 <testcase name="d"><failure><![CDATA[expected </testcase> <error>]]></failure></testcase>
 </testsuite></testsuites>`;
   assert.deepEqual(lib.countJunit(xml), { ran: 4, bad: 1 });
+  // 中身の無い <system-out/>（.NET が書く形）の後ろの testcase を隠さない
+  const empty = '<testcase name="e"><system-out /></testcase><testcase name="f"><failure/><system-out>x</system-out></testcase>';
+  assert.deepEqual(lib.countJunit(empty), { ran: 2, bad: 1 });
+  assert.equal((lib.mergeJunit([{ name: 'e.xml', text: empty }]).match(/<testcase /g) ?? []).length, 2);
 });
 
 test('JUnit をまとめる: testcase をそのまま写す', () => {

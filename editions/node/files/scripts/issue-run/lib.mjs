@@ -225,7 +225,8 @@ function maskJunit(text) {
   const masked = String(text ?? '')
     .replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, keep)
     .replace(/<!--[\s\S]*?-->/g, keep)
-    .replace(/(<system-(?:out|err)\b[^>]*>)([\s\S]*?)(<\/system-(?:out|err)>)/g, (_, a, body, b) => a + keep(body) + b);
+    // 中身の無い <system-out/> は隠さない（次の </system-out> までを中身と取り違えない）。開きと閉じの名前はそろえる
+    .replace(/(<system-(out|err)\b[^>]*(?<!\/)>)([\s\S]*?)(<\/system-\2>)/g, (_, a, _n, body, b) => a + keep(body) + b);
   const restore = (s) => {
     let out = s;
     while (/\u0000\d+\u0000/.test(out)) out = out.replace(/\u0000(\d+)\u0000/g, (_, i) => saved[Number(i)]);
