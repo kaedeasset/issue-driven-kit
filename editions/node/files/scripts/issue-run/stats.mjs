@@ -5,9 +5,9 @@
 //   node scripts/issue-run/stats.mjs --repo <owner/name>  # ほかのリポジトリ（Unity 版を入れた物も）を数える
 // 合否を出す道具ではないので Result: 行は出さない。終了コード 0 = 数えられた・1 = gh が失敗した・引数が違う。
 import { run, resolveCmd } from './proc.mjs';
-import { runStats } from './lib.mjs';
+import { runStats, STATS_LIMITS } from './lib.mjs';
 
-const LIMIT = 1000;
+const LIMIT = STATS_LIMITS.issues;
 const argv = process.argv.slice(2);
 let repo = null;
 for (let i = 0; i < argv.length; i++) {
@@ -32,4 +32,4 @@ console.log(`分（合格した Issue ごとの合計）: 中央値 ${s.minutes.
 console.log(`結果のコメント: ${s.results.total} 件（PASS ${s.results.PASS}・NOT-PASS ${s.results['NOT-PASS']}・ABORTED ${s.results.ABORTED}）`);
 console.log(`ラベル（参考）: claude-run ${s.labels.run} 件（うちまだ回していない物 ${s.labels.runNotRan} 件）・claude-done ${s.labels.done} 件・claude-failed ${s.labels.failed} 件`);
 if (s.truncated) console.log(`注意: Issue がちょうど ${LIMIT} 件。${LIMIT} 件で切られたかもしれない`);
-if (s.manyComments.length) console.log(`注意: コメントが 100 件以上ある Issue（取りこぼしたかもしれない）: ${s.manyComments.map((n) => `#${n}`).join(' ')}`);
+if (s.manyComments.length) console.log(`注意: コメントが ${STATS_LIMITS.comments} 件以上ある Issue（取りこぼしたかもしれない）: ${s.manyComments.map((n) => `#${n}`).join(' ')}`);

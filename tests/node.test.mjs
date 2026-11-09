@@ -1072,6 +1072,20 @@ test('stats: 形の違う行は読まない', () => {
   ]) assert.equal(lib.parseResultHead(t), null, String(t));
 });
 
+test('stats: 上限の数を 1 か所で決める', () => {
+  const { issues: maxIssues, comments: maxComments } = lib.STATS_LIMITS;
+  const human = { body: '人のコメント' };
+  const withComments = (number, n) => ({ number, labels: [], comments: Array.from({ length: n }, () => human) });
+  // 引数なしの既定が STATS_LIMITS から読む：コメントが上限の数の Issue は知らせ、1 件少ない Issue は知らせない
+  const s = lib.runStats([withComments(1, maxComments), withComments(2, maxComments - 1)]);
+  assert.deepEqual(s.manyComments, [1]);
+  assert.equal(s.truncated, false);
+  // Issue が上限の数のときに切られたかもしれないと知らせる
+  const full = Array.from({ length: maxIssues }, (_, i) => withComments(i + 1, 0));
+  assert.equal(lib.runStats(full).truncated, true);
+  assert.equal(lib.runStats(full.slice(1)).truncated, false);
+});
+
 test('stats: 回した・合格・1 回目で合格・分を数える', () => {
   const c = (status, minutes, rounds = 1) => ({ body: `issue-run.mjs: **${status}** — ${minutes} 分（2026-11-09 09:00〜09:30）・${rounds} 回・コミット 1 件・作業場所 a` });
   const human = { body: '人のコメント' };
