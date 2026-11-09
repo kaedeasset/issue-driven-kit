@@ -46,6 +46,8 @@ GitHub の Issue（開いている物も閉じた物も）を `gh issue list --s
 | `editions/node/files/docs/guides/working/issue-driven-development.md` | 部品の表に `stats.mjs` の行を足す |
 | `tests/node.test.mjs` | 5 章の試験。あわせて、試験 K-1 の Node 版の部品の一覧（`['issue-run', 'lib', 'proc', 'check-lib', 'doctor', 'sync-lanes']`）に `stats` を足す（足さないと K-1 が落ちる） |
 
+取りこぼしの知らせに使う上限の数（読む Issue の 1000・Issue ごとのコメントの 100）は、`lib.mjs` の `export const STATS_LIMITS = { issues: 1000, comments: 100 }` の 1 か所で決める。`runStats` の既定と、`stats.mjs` の `gh` の `--limit` と知らせの文は、どれもここから読む（数を別の所に書かない。CLAUDE.md 原則 5）。
+
 Node.js の標準の部品だけを使う（基本設計 D11）。PowerShell を使わない（D2）。Unity 版には足さない（Node 版の `stats.mjs` で Unity 版のリポジトリも数えられるため）。仕様（無人の回のふるまいの決まり）は変えない。
 
 ## 5. 試験の名前
@@ -54,6 +56,7 @@ Node.js の標準の部品だけを使う（基本設計 D11）。PowerShell を
 |---|---|
 | `stats: 結果のコメントの 1 行目を読む` | 両方のスクリプトの名前の行から、結果・分・回・コミットを読む。（開始〜終了）の無い古い形と、日をまたぐ形も読む。`parseResultHead(headLine({…}))` で、書く側の形をそのまま読めることを確かめる |
 | `stats: 形の違う行は読まない` | 人のコメント・起動しなかったときのコメント・太字の無い行・結果の語が違う行は `null` |
+| `stats: 上限の数を 1 か所で決める` | `runStats` を引数なしで呼んだとき、コメントが `STATS_LIMITS.comments` 件の Issue を知らせ、1 件少ない Issue は知らせない。Issue が `STATS_LIMITS.issues` 件のときに切られたかもしれないと知らせる |
 | `stats: 回した・合格・1 回目で合格・分を数える` | 小さい Issue の配列から 2 章の数を出す。不合格の後にやり直して合格した Issue が「1 回目で合格」に入らず、分は全部の回の合計になること。中央値（偶数の件数）。ラベルの参考の数と、まだ回していない物の数 |
 
 ## 6. 変えないもの
