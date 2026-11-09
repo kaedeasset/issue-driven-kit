@@ -229,7 +229,7 @@ flowchart TB
 
 | # | 決めること | 推し・決定 | ほかの案 | 理由 |
 |---|---|---|---|---|
-| D1 | キットを置く場所 | **決定：新しいリポジトリ `mkanakureon/issue-driven-kit`**（初めは private。2026-10-23 ユーザー「キット　は公開リポジトリにする」で**公開（MIT）**にした。公開は 1 コミットのきれいな履歴から始め、開発の途中の履歴は private の `issue-driven-kit-dev` に残す）。利用先には写しを入れ、元のコミットを `.issue-kit/version` に残す | このリポジトリの中／利用先に直接 | 共有の部品を 1 か所に保つ。古い写しに気づける |
+| D1 | キットを置く場所 | **決定：新しいリポジトリ `mkanakureon/issue-driven-kit`**（初めは private。2026-10-23 ユーザー「キット　は公開リポジトリにする」で**公開（MIT）**にした。公開は 1 コミットのきれいな履歴から始め、開発の途中の履歴は private の `issue-driven-kit-dev` に残す）。利用先には写しを入れ、元のコミットを `.issue-kit/version` に残す。2026-11-09 にユーザーの指示で organization の `kaedeasset/issue-driven-kit` へ移した | このリポジトリの中／利用先に直接 | 共有の部品を 1 か所に保つ。古い写しに気づける |
 | D2 | 脚本の言語 | **決定（2026-10-23 ユーザー）：Unity 版は PowerShell（Windows）、Node 版は Node.js だけ（PowerShell を使わない）** | — | 利用先の技術に合わせる。Node 版の利用者に PowerShell を入れさせない |
 | D3 | Node 版のテスト | **決定：vitest。Worker の試験は `@cloudflare/vitest-plugin`**。版の組み合わせは入れるときに公式の案内で確かめ、固定する | 素の vitest だけ | ロードマップの失敗ケースは Worker と D1 を通して試すのが本物に近い |
 | D4 | Node 版の置き場の名前 | **決定：利用先に合わせて小文字**。脚本は `scripts/issue-run/`、文書は `docs/guides/`・`docs/reports/`・`docs/inspecs/`、ログは `.issue-run/logs/`（git に入れない）。既存の `docs/` の 6 本と `docs/adr/` は触らない | Unity 版と同じ大文字 | 大文字と小文字の問題（5 章）。既存の置き方を壊さない |

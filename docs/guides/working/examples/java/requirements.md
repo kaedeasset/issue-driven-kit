@@ -164,7 +164,7 @@ Java 向けのキットの版は作らない。**キットの Node 版を入れ�
 ## 12. 参照
 
 - [`basic-design.md`](basic-design.md)
-- https://github.com/mkanakureon/issue-driven-kit
+- https://github.com/kaedeasset/issue-driven-kit
 - 共通の前提：キットの `docs/guides/working/examples/README.md`
 
 ## 13. 規模の見積もり

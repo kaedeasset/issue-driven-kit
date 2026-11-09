@@ -139,7 +139,7 @@ GitHub Issueから生成AI（Claude Code）が設計・実装・テスト・修�
 
 ## 11. 参照
 
-- キット本体：https://github.com/mkanakureon/issue-driven-kit
+- キット本体：https://github.com/kaedeasset/issue-driven-kit
 - キット仕様：`shared/spec/issue-run-spec.md`、Node 版：`editions/node/`
 - 共通の前提：キットの `docs/guides/working/examples/README.md`
 - `basic-design.md`（本リポジトリ）

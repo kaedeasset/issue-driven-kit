@@ -140,7 +140,7 @@ NET-F-01～14を実装しNET-AC-01～15を検証。第三者がREADMEでAPI・Wi
 ## 12. 参照
 
 - `basic-design.md`
-- https://github.com/mkanakureon/issue-driven-kit （現行の版と共通仕様を参照）
+- https://github.com/kaedeasset/issue-driven-kit （現行の版と共通仕様を参照）
 - 共通の前提：キットの `docs/guides/working/examples/README.md`
 
 ## 13. 規模の見積もり

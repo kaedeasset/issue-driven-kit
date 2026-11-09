@@ -149,7 +149,7 @@ claude setup-token
 キットは公開のリポジトリです（MIT ライセンス）。GitHub のアカウントがあれば、誰でも clone できます。
 
 ```text
-git clone https://github.com/mkanakureon/issue-driven-kit.git
+git clone https://github.com/kaedeasset/issue-driven-kit.git
 ```
 
 置く場所はどこでもかまいません。このガイドでは `<キット>` と書きます（例：Windows `C:\work\issue-driven-kit`、Mac `~/work/issue-driven-kit`）。
@@ -537,7 +537,7 @@ claude --version
 ### M2 キットの試験
 
 ```bash
-git clone https://github.com/mkanakureon/issue-driven-kit.git ~/work/issue-driven-kit
+git clone https://github.com/kaedeasset/issue-driven-kit.git ~/work/issue-driven-kit
 cd ~/work/issue-driven-kit
 npm test; echo "exit=$?"
 ```

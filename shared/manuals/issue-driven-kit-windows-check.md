@@ -64,7 +64,7 @@ gh auth status
 
 ```powershell
 cd C:\work
-git clone https://github.com/mkanakureon/issue-driven-kit.git
+git clone https://github.com/kaedeasset/issue-driven-kit.git
 ```
 
 | 期待する出力 | 終了コード |
@@ -250,7 +250,7 @@ gh auth status
 
 ```powershell
 cd C:\work
-git clone https://github.com/mkanakureon/issue-driven-kit.git
+git clone https://github.com/kaedeasset/issue-driven-kit.git
 ```
 
 | 期待する出力 | 終了コード |
