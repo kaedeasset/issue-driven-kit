@@ -280,7 +280,7 @@ const nodeFiles = [
     .map((s) => `.claude/skills/${s}/SKILL.md`),
   '.github/ISSUE_TEMPLATE/claude-run.md',
   'scripts/test.mjs',
-  ...['issue-run', 'lib', 'proc', 'check-lib', 'doctor', 'sync-lanes'].map((s) => `scripts/issue-run/${s}.mjs`),
+  ...['issue-run', 'lib', 'proc', 'check-lib', 'doctor', 'sync-lanes', 'stats'].map((s) => `scripts/issue-run/${s}.mjs`),
   'docs/guides/README.md',
   'docs/guides/working/issue-run.md', 'docs/guides/working/issue-driven-development.md',
   'docs/guides/working/worktree-lanes.md', 'docs/guides/working/github-repo.md',
@@ -1047,4 +1047,58 @@ test('テストの入口（command）: cmd.exe を通す道具の引数に % が
     assert.equal(ok.code, 0, ok.error);
     assert.equal(existsSync(join(dir, 'ran.txt')), true, '起動していない');
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('stats: 結果のコメントの 1 行目を読む', () => {
+  const span = lib.formatSpan(new Date(2026, 10, 9, 9, 36), new Date(2026, 10, 9, 9, 42));
+  const written = lib.headLine({ status: 'PASS', minutes: 6, span, rounds: 1, commits: 2, folder: 'app', branch: 'main', head: '81093d6c', logDir: '.issue-run/logs/1/' });
+  assert.deepEqual(lib.parseResultHead(`${written}\n\n| 合格の条件 | 判定 |`), { script: 'issue-run.mjs', status: 'PASS', minutes: 6, rounds: 1, commits: 2 });
+  assert.deepEqual(lib.parseResultHead('issue-run.ps1: **NOT-PASS** — 31 分（2026-11-09 23:50〜2026-11-10 00:21）・3 回・コミット 0 件・作業場所 x（main・HEAD abcdef1）・ログ y'),
+    { script: 'issue-run.ps1', status: 'NOT-PASS', minutes: 31, rounds: 3, commits: 0 });
+  assert.deepEqual(lib.parseResultHead('issue-run.ps1: **PASS** — 7 分・1 回・コミット 2 件・作業場所 x'),
+    { script: 'issue-run.ps1', status: 'PASS', minutes: 7, rounds: 1, commits: 2 });
+  assert.deepEqual(lib.parseResultHead('issue-run.mjs: **ABORTED** — 90 分（2026-11-09 10:00〜11:30）・2 回・コミット 1 件\r\n'),
+    { script: 'issue-run.mjs', status: 'ABORTED', minutes: 90, rounds: 2, commits: 1 });
+});
+
+test('stats: 形の違う行は読まない', () => {
+  for (const t of [
+    '確かめました。ありがとう',
+    'issue-run.mjs: **起動しなかった** — 合格の条件が無い',
+    'issue-run.mjs: PASS — 6 分（2026-11-09 09:36〜09:42）・1 回・コミット 2 件',
+    'issue-run.mjs: **OK** — 6 分（2026-11-09 09:36〜09:42）・1 回・コミット 2 件',
+    'メモ\nissue-run.mjs: **PASS** — 6 分・1 回・コミット 2 件',
+    '', null, undefined,
+  ]) assert.equal(lib.parseResultHead(t), null, String(t));
+});
+
+test('stats: 回した・合格・1 回目で合格・分を数える', () => {
+  const c = (status, minutes, rounds = 1) => ({ body: `issue-run.mjs: **${status}** — ${minutes} 分（2026-11-09 09:00〜09:30）・${rounds} 回・コミット 1 件・作業場所 a` });
+  const human = { body: '人のコメント' };
+  const L = (...n) => n.map((name) => ({ name }));
+  const issues = [
+    { number: 1, labels: L('claude-run', 'claude-done'), comments: [c('PASS', 10)] },                 // 1 回目で合格
+    { number: 2, labels: L('claude-run', 'claude-done'), comments: [c('NOT-PASS', 20, 3), human, c('PASS', 5)] }, // やり直して合格
+    { number: 3, labels: L('claude-run', 'claude-failed'), comments: [c('ABORTED', 90, 2)] },        // 合格していない
+    { number: 4, labels: L('claude-run'), comments: [human] },                                       // まだ回していない
+    { number: 5, labels: [], comments: [] },                                                         // 無人の回と関係ない
+    { number: 6, labels: L('claude-done'), comments: [c('PASS', 8, 2)] },                            // 1 回の中で 2 回目に合格
+  ];
+  const s = lib.runStats(issues);
+  assert.equal(s.issues, 6);
+  assert.equal(s.ran, 4);
+  assert.equal(s.passed, 3);
+  assert.equal(s.firstTry, 1);
+  assert.deepEqual(s.minutes, { median: 10, total: 43 });   // 10・25・8 → 中央値 10
+  assert.deepEqual(s.results, { total: 5, 'PASS': 3, 'NOT-PASS': 1, 'ABORTED': 1 });
+  assert.deepEqual(s.labels, { run: 4, done: 3, failed: 1, runNotRan: 1 });
+  assert.equal(s.truncated, false);
+  assert.deepEqual(s.manyComments, []);
+  // 偶数の件数の中央値は真ん中の 2 つの平均を四捨五入（10・25 → 17.5 → 18）
+  assert.deepEqual(lib.runStats(issues.slice(0, 2)).minutes, { median: 18, total: 35 });
+  assert.deepEqual(lib.runStats([]).minutes, { median: null, total: 0 });
+  // 取りこぼしの知らせ
+  const many = lib.runStats([{ number: 9, labels: [], comments: Array.from({ length: 100 }, () => human) }, ...issues], { limit: 7 });
+  assert.equal(many.truncated, true);
+  assert.deepEqual(many.manyComments, [9]);
 });

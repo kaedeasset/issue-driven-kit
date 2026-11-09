@@ -1,5 +1,5 @@
 // lib.mjs — 無人の Issue 実行（Node 版）の、外に触らない部品。仕様の正: キットの shared/spec/issue-run-spec.md。
-// issue-run.mjs・stop-hook.mjs・doctor.mjs・check-lib.mjs とキットの試験が使う。Node.js の標準の部品だけで書く。
+// issue-run.mjs・stop-hook.mjs・doctor.mjs・check-lib.mjs・stats.mjs とキットの試験が使う。Node.js の標準の部品だけで書く。
 import { createHash } from 'node:crypto';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -166,6 +166,52 @@ export function formatSpan(from, to) {
 // 5 章：結果のコメントの 1 行目（形を変えない。前提の判定が「・HEAD <sha>）」を読む）
 export function headLine({ script = 'issue-run.mjs', status, minutes, span, rounds, commits, folder, branch, head, logDir }) {
   return `${script}: **${status}** — ${minutes} 分（${span}）・${rounds} 回・コミット ${commits} 件・作業場所 ${folder}（${branch}・HEAD ${head}）・ログ ${logDir}`;
+}
+
+// 実績を数える（stats.mjs）：結果のコメントの 1 行目を読む。形の正は仕様 5 章（書く側は headLine）。
+// （開始〜終了）は無くてもよい（初めのころの形）。読めなければ null
+export function parseResultHead(text) {
+  const first = String(text ?? '').replace(/\r/g, '').split('\n')[0];
+  const m = /^(issue-run\.(?:mjs|ps1)): \*\*(PASS|NOT-PASS|ABORTED)\*\* — (\d+) 分(?:（[^）]*）)?・(\d+) 回・コミット (\d+) 件/.exec(first);
+  if (!m) return null;
+  return { script: m[1], status: m[2], minutes: Number(m[3]), rounds: Number(m[4]), commits: Number(m[5]) };
+}
+
+// 実績を数える：gh issue list --json number,labels,comments の配列から数える（外に触らない）
+export function runStats(issues, { limit = 1000, commentLimit = 100 } = {}) {
+  const list = Array.isArray(issues) ? issues : [];
+  const labelNames = (i) => (i.labels ?? []).map((l) => (typeof l === 'string' ? l : l?.name));
+  const byStatus = { 'PASS': 0, 'NOT-PASS': 0, 'ABORTED': 0 };
+  let ran = 0, passed = 0, firstTry = 0, results = 0;
+  const passMinutes = [];
+  const labels = { run: 0, done: 0, failed: 0, runNotRan: 0 };
+  for (const issue of list) {
+    const heads = (issue.comments ?? []).map((c) => parseResultHead(c?.body)).filter(Boolean);
+    const names = labelNames(issue);
+    if (names.includes(LABELS.run.name)) { labels.run++; if (heads.length === 0) labels.runNotRan++; }
+    if (names.includes(LABELS.done.name)) labels.done++;
+    if (names.includes(LABELS.failed.name)) labels.failed++;
+    results += heads.length;
+    for (const h of heads) byStatus[h.status]++;
+    if (heads.length === 0) continue;
+    ran++;
+    if (heads.at(-1).status !== 'PASS') continue;
+    passed++;
+    passMinutes.push(heads.reduce((s, h) => s + h.minutes, 0));
+    if (heads.length === 1 && heads[0].rounds === 1) firstTry++;
+  }
+  const sorted = [...passMinutes].sort((a, b) => a - b);
+  const n = sorted.length;
+  const median = n === 0 ? null : n % 2 ? sorted[(n - 1) / 2] : Math.round((sorted[n / 2 - 1] + sorted[n / 2]) / 2);
+  const total = passMinutes.reduce((s, x) => s + x, 0);
+  return {
+    issues: list.length, ran, passed, firstTry,
+    minutes: { median, total },
+    results: { total: results, ...byStatus },
+    labels,
+    truncated: list.length === limit,
+    manyComments: list.filter((i) => (i.comments ?? []).length >= commentLimit).map((i) => i.number),
+  };
 }
 
 // 2.2：前提の Issue の最後の結果のコメントから、合格したコミットの候補を出す

@@ -32,6 +32,7 @@
 |---|---|---|
 | `scripts/issue-run/issue-run.mjs`（と `lib.mjs`・`proc.mjs`） | 無人実行の本体（Node.js・Windows と Mac） | `docs/guides/working/issue-run.md` |
 | `scripts/issue-run/check-lib.mjs` | 確認コマンドから使う手伝い | `docs/guides/procedures/issue-goal-setting.md` 4 章 |
+| `scripts/issue-run/stats.mjs` | 無人の回の実績を数える（回した・合格・1 回目で合格・分） | `docs/guides/working/issue-run.md` の「実績を数える」 |
 | `.claude/issue-run/prompt.md` | 無人の Claude への指示文 | `issue-run.md` |
 | `.claude/issue-run/settings.json` | deny・Stop hook・env（自動更新を止める・時間切れを 90 分に） | 同上 |
 | `.claude/issue-run/stop-hook.mjs` | 報告が「合格」で守るファイルが無傷になるまで終わらせない | 同上 |
