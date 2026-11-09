@@ -2,9 +2,9 @@
   "kit": "issue-driven-kit",
   "edition": "node",
   "repo": "kaedeasset/issue-driven-kit",
-  "commit": "daeef6bf96f36d3addc449d3030c700069b66637",
+  "commit": "2358eda0630281f5befd7d732ba3145a129e68d6",
   "dirty": true,
-  "installedAt": "2026-11-09T11:10:36.691Z",
+  "installedAt": "2026-11-09T11:26:20.037Z",
   "files": [
     ".claude/issue-run/prompt.md",
     ".claude/issue-run/settings.json",

@@ -177,8 +177,11 @@ export function parseResultHead(text) {
   return { script: m[1], status: m[2], minutes: Number(m[3]), rounds: Number(m[4]), commits: Number(m[5]) };
 }
 
+// 実績を数える：取りこぼしの知らせに使う上限の数（読む Issue の数・Issue ごとのコメントの数）。ここ 1 か所で決める
+export const STATS_LIMITS = { issues: 1000, comments: 100 };
+
 // 実績を数える：gh issue list --json number,labels,comments の配列から数える（外に触らない）
-export function runStats(issues, { limit = 1000, commentLimit = 100 } = {}) {
+export function runStats(issues, { limit = STATS_LIMITS.issues, commentLimit = STATS_LIMITS.comments } = {}) {
   const list = Array.isArray(issues) ? issues : [];
   const labelNames = (i) => (i.labels ?? []).map((l) => (typeof l === 'string' ? l : l?.name));
   const byStatus = { 'PASS': 0, 'NOT-PASS': 0, 'ABORTED': 0 };
