@@ -85,7 +85,7 @@ else {
       const l = run('gh', ['label', 'list', '--repo', repo, '--limit', '200', '--json', 'name']);
       const have = l.code === 0 ? JSON.parse(l.stdout).map((x) => x.name) : [];
       const missing = ['claude-run', 'claude-working', 'claude-done', 'claude-failed'].filter((x) => !have.includes(x));
-      if (missing.length) report('WARN', 'ラベル', `まだ無い: ${missing.join(', ')}（issue-run.mjs の最初の実行で作られる。先に Issue に札を付けるなら → gh label create claude-run --repo ${repo}）`);
+      if (missing.length) report('WARN', 'ラベル', `まだ無い: ${missing.join(', ')}（issue-run.mjs の最初の実行で作られる。先に Issue にラベルを付けるなら → gh label create claude-run --repo ${repo}）`);
       else report('OK', 'ラベル', 'claude-run・claude-working・claude-done・claude-failed');
     }
   }

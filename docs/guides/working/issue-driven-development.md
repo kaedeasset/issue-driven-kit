@@ -12,7 +12,7 @@
 | # | 考え方 | どこで守るか |
 |---|---|---|
 | 1 | **合否は機械が決める。** AI の「できました」も人の「良さそう」も合否に使わない。使うのは Issue の確認コマンドの終了コードだけ | `issue-run.mjs`（確認コマンドを実行）・Stop hook・守るファイルの指紋 |
-| 2 | **正は文書、Issue は札。** 設計は文書に書き、Issue は「どの文書のどこを、どの合格の条件まで」を指す | `issue-goal-setting.md` 1 章・CLAUDE.md の置き場 |
+| 2 | **正は文書、Issue は指すだけ。** 設計は文書に書き、Issue は「どの文書のどこを、どの合格の条件まで」を指す | `issue-goal-setting.md` 1 章・CLAUDE.md の置き場 |
 | 3 | **止まる原因を仕組みで塞ぐ。** 「止まるな」と書くのでなく、止まる原因ごとに設定・hook・スクリプトで塞ぐ | `issue-run.md`「止まらない仕組み」 |
 | 4 | **人は決めることと確かめることだけ。** 合格の条件を決め、Issue を書かせ、終わった後に確かめて閉じる・push する | 下の 2 章 |
 
@@ -49,7 +49,7 @@ flowchart LR
     W["人: 決める"] --> D["設計書（大きいものだけ）<br/>docs/guides/working/"]
     D --> I["Issue<br/>やること・元の文書・<br/>合格の条件＋確認コマンド"]
     I --> T["確認コマンドを 1 回回す<br/>今は落ちる・理由が正しい"]
-    T --> L["札 claude-run<br/>issue-run --dry-run"]
+    T --> L["ラベル claude-run<br/>issue-run --dry-run"]
     L --> R["issue-run 起動"]
     R --> C["無人の Claude<br/>設計→実装→テスト→コミット"]
     C --> J{"確認コマンド<br/>exit 0？"}
@@ -57,7 +57,7 @@ flowchart LR
     J -- はい --> OK["claude-done＋コメント"]
     J -- 4 回で通らない --> NG["claude-failed＋理由"]
     OK --> H["人: 読んで閉じる・push"]
-    NG --> F["人: Issue か仕組みを直し<br/>札を外して出し直す"]
+    NG --> F["人: Issue か仕組みを直し<br/>ラベルを外して出し直す"]
     F --> R
 ```
 
@@ -67,7 +67,7 @@ flowchart LR
 
 | 知りたいこと | 正 |
 |---|---|
-| Issue の書き方（ゴール・合格の条件・確認コマンド・守るファイル・例・札を付ける前の確かめ・終わった後の読み方） | `docs/guides/procedures/issue-goal-setting.md` |
+| Issue の書き方（ゴール・合格の条件・確認コマンド・守るファイル・例・ラベルを付ける前の確かめ・終わった後の読み方） | `docs/guides/procedures/issue-goal-setting.md` |
 | 無人実行の仕組み（止まらない仕組み・ラベル・引数・ログ） | `docs/guides/working/issue-run.md` |
 | テストの回し方・結果の読み方 | `docs/guides/procedures/node-test-procedure.md` |
 | 合格基準・欠陥の扱い・中断 | `docs/guides/decisions/test-plan.md` |
@@ -107,7 +107,7 @@ flowchart LR
 | `NG gh の PATH` | 窓が古い | 新しい窓で回す |
 | `NG gh のログイン` | ログインしていない・権限 repo が無い | `gh auth login`・`gh auth refresh -s repo` |
 | `WARN 長期トークン` | 無人の回が途中で認証切れになることがある | 6.2 の 4 |
-| `WARN ラベル` | `claude-run` などがまだ無い | `issue-run.mjs` の最初の実行で作られる。先に Issue に札を付けたいなら `gh label create claude-run` |
+| `WARN ラベル` | `claude-run` などがまだ無い | `issue-run.mjs` の最初の実行で作られる。先に Issue にラベルを付けたいなら `gh label create claude-run` |
 | `WARN キットの版: 古い` | 入っている一式（`.issue-kit/version` のコミット）が、キットのリポジトリの既定のブランチの最新と違う。行にキットの最新の短い SHA が出る | 7 章の手順で入れ直す（`node <キット>/editions/node/install.mjs --target . --update`） |
 | `WARN キットの版`（読めない・リポジトリが無い・版のファイルが無い） | GitHub を読めない（`gh` のログイン・ネット）か、古い `install.mjs` で入れたので比べる相手が分からない | `gh` を直してもう一度回す。リポジトリが無いなら 7 章で入れ直すと書かれる |
 | `WARN 作業ツリー` | 未コミットがある | コミットしてから回す（無人の回のコミットと混ざる） |
@@ -172,7 +172,7 @@ requireTests(['マイナスのスコアなら 400 を返す']);
 done();
 ```
 
-テストのファイルを「守る」に入れるのが要。入れないと、AI がテストの期待値を実装に合わせて直せてしまう。書き方の細部・例・札を付ける前の確かめは `issue-goal-setting.md`。
+テストのファイルを「守る」に入れるのが要。入れないと、AI がテストの期待値を実装に合わせて直せてしまう。書き方の細部・例・ラベルを付ける前の確かめは `issue-goal-setting.md`。
 
 ### 8.3 会話の中で使うスキル
 
