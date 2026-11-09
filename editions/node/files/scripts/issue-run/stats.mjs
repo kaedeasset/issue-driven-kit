@@ -11,7 +11,7 @@ const LIMIT = 1000;
 const argv = process.argv.slice(2);
 let repo = null;
 for (let i = 0; i < argv.length; i++) {
-  if (argv[i] === '--repo' && argv[i + 1]) repo = argv[++i];
+  if (argv[i] === '--repo') { repo = argv[++i]; if (!repo) { console.error('--repo の後に <owner/name> が要る'); process.exit(1); } }
   else { console.error(`知らない引数: ${argv[i]}（使えるのは --repo <owner/name> だけ）`); process.exit(1); }
 }
 
