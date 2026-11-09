@@ -1,6 +1,6 @@
 ---
 name: Claude に無人で進めさせる
-about: scripts/issue-run/issue-run.mjs が拾う札。設計はリポジトリの文書に書き、ここには「何をやってよいか」と合格の条件を書く
+about: scripts/issue-run/issue-run.mjs が拾う Issue。設計はリポジトリの文書に書き、ここには「何をやってよいか」と合格の条件を書く
 ---
 <!-- ラベル claude-run は、作った後に、書き込みの権限のある人が本文を読んでから付ける。ひな形では付けない（公開のリポジトリでは、だれでもひな形から Issue を作れるため） -->
 

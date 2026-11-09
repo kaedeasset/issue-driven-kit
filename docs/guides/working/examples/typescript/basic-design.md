@@ -43,7 +43,7 @@ flowchart LR
 | API | `express-session`・`connect-pg-simple`・`csrf-csrf` | 1.19.x・10.0.x・4.1.x | A3 |
 | API | `bcryptjs` | 3.0.x | A6 |
 | API | `pino`・`nestjs-pino`（JSON のログ） | 10.4.x・5.3.x | — |
-| ORM | Prisma（`prisma`・`@prisma/client`・`@prisma/adapter-pg`） | 7.10.x | npm の `latest` の札は 8.0 の rc を指しているので使わない |
+| ORM | Prisma（`prisma`・`@prisma/client`・`@prisma/adapter-pg`） | 7.10.x | npm の `latest` のタグは 8.0 の rc を指しているので使わない |
 | 型の生成 | `openapi-typescript` | 7.13.x | A2 |
 | DB | PostgreSQL | 17（確かめた時点の最新は 17.11） | Windows のサービス（共通 §2.2）。18 より、使う ORM と道具の対応が長い |
 | テスト | Vitest | 5.1.x | 単体と API の統合 |

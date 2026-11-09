@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // issue-run.mjs — GitHub Issue を 1 件ずつ、無人の Claude Code（claude -p）に合格まで進めさせる（Node 版・Windows と Mac）。
 // 仕様の正: キットの shared/spec/issue-run-spec.md。使い方と Issue の書き方: docs/guides/working/issue-run.md
-//   node scripts/issue-run/issue-run.mjs                 # 札の付いた Issue を全部、順に
+//   node scripts/issue-run/issue-run.mjs                 # ラベルの付いた Issue を全部、順に
 //   node scripts/issue-run/issue-run.mjs --issue 12      # 1 件だけ
 //   node scripts/issue-run/issue-run.mjs --dry-run       # 対象・合格の条件・渡す指示文を見るだけ（Claude は起動しない）
 //   node scripts/issue-run/issue-run.mjs --no-notify     # 終わりの知らせ（ベル・Mac の通知）を出さない
@@ -267,11 +267,11 @@ let aborted = '';
 try {
   initLabels();
 
-  // 前回が途中で落ちていたら、実行中の札が残っている。外して対象に戻す（ほかの worktree の実行の分は外さない）
+  // 前回が途中で落ちていたら、実行中のラベルが残っている。外して対象に戻す（ほかの worktree の実行の分は外さない）
   const othersBusy = otherRunningIssues();
   for (const s of ghJson(['issue', 'list', '--repo', REPO, '--label', L.LABELS.working.name, '--state', 'open', '--json', 'number'])) {
     if (othersBusy.includes(s.number)) continue;
-    setLabel(s.number, [], [L.LABELS.working.name]); step(`前回の実行中の札を外した: #${s.number}`);
+    setLabel(s.number, [], [L.LABELS.working.name]); step(`前回の実行中のラベルを外した: #${s.number}`);
   }
 
   // 設定の実体を作る（仕様 3.2）

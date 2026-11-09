@@ -362,12 +362,12 @@ pwsh Scripts\issue-run.ps1
 
 ### 6.1 長く回す（放っておくとき）
 
-無人の回は、札（`claude-run`）の付いた Issue を 1 件ずつ順に回し、合格するまで同じ会話を再開します。1 件の時間・再開の回数・1 回に回す件数・利用上限に当たったときの待ち方には上限があり、**既定の値と変え方は入れた先の `docs/guides/working/issue-run.md` の「起動」**にあります（キットの中では [`issue-run.md`](../../editions/node/files/docs/guides/working/issue-run.md)）。値はそこと脚本の既定の値が正なので、このガイドには写しません。
+無人の回は、ラベル `claude-run` の付いた Issue を 1 件ずつ順に回し、合格するまで同じ会話を再開します。1 件の時間・再開の回数・1 回に回す件数・利用上限に当たったときの待ち方には上限があり、**既定の値と変え方は入れた先の `docs/guides/working/issue-run.md` の「起動」**にあります（キットの中では [`issue-run.md`](../../editions/node/files/docs/guides/working/issue-run.md)）。値はそこと脚本の既定の値が正なので、このガイドには写しません。
 
 | 知りたいこと | どうなるか |
 |---|---|
-| 合格しなかった | その Issue に `claude-failed` の札が付き、次の Issue へ進みます。直し方は、入れた先の `docs/guides/procedures/issue-goal-setting.md` の 8 章 |
-| 途中で止める | 窓を閉じるか `Ctrl+C` で止めます。回していた Issue には実行中の札 `claude-working` が残り、その Issue は対象から外れます。**次の起動で対象が 1 件以上あれば、前回の実行中の札が外れて対象に戻ります**（窓に「前回の実行中の札を外した」と出ます。ほかの worktree で動いている回の分は外しません）。止めた Issue のほかに対象が無いと「対象 0 件」で終わって札は残るので、そのときは `--issue <番号>` で 1 件だけ起動します（札を見ずに回し、残った札も外します） |
+| 合格しなかった | その Issue にラベル `claude-failed` が付き、次の Issue へ進みます。直し方は、入れた先の `docs/guides/procedures/issue-goal-setting.md` の 8 章 |
+| 途中で止める | 窓を閉じるか `Ctrl+C` で止めます。回していた Issue には実行中のラベル `claude-working` が残り、その Issue は対象から外れます。**次の起動で対象が 1 件以上あれば、前回の実行中のラベルが外れて対象に戻ります**（窓に「前回の実行中のラベルを外した」と出ます。ほかの worktree で動いている回の分は外しません）。止めた Issue のほかに対象が無いと「対象 0 件」で終わってラベルは残るので、そのときは `--issue <番号>` で 1 件だけ起動します（ラベルを見ずに回し、残った実行中のラベルも外します） |
 | 中身のログ | `.issue-run/logs/<日時>/`（Issue ごとの指示・会話の結果・確認コマンドの出力） |
 | 回の履歴 | `.issue-run/logs/runs.log`（回ごとに 1 行。対象 0 件の回も残ります） |
 | まとめ | `docs/reports/YYYY/MM/DD/NN-issue-run.md`（合格しなかった → 合格した、の順。コミットして残します） |

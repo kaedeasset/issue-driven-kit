@@ -1,12 +1,12 @@
 # Issue を無人の Claude に進めさせる（issue-run）
 
-GitHub Issue に札を付けておくと、`scripts/issue-run/issue-run.mjs` が1件ずつ新しい Claude Code（`claude -p`・auto mode）を起動し、**Issue の合格の条件を満たすまで**設計・実装・テストを回させる。人が作業していない作業場所（worktree）を選んで起動し、終わったら確認する。Windows でも Mac でも、Node.js だけで動く。
+GitHub Issue にラベルを付けておくと、`scripts/issue-run/issue-run.mjs` が1件ずつ新しい Claude Code（`claude -p`・auto mode）を起動し、**Issue の合格の条件を満たすまで**設計・実装・テストを回させる。人が作業していない作業場所（worktree）を選んで起動し、終わったら確認する。Windows でも Mac でも、Node.js だけで動く。
 
 決まりの正は、Issue 駆動キットの `shared/spec/issue-run-spec.md`（Unity 版の `issue-run.ps1` と同じ決まり）。入れた版は `.issue-kit/version`。
 
 ## 考え方
 
-- **設計の正はリポジトリの文書。** Issue は「どの文書のどこを、どの合格の条件まで」の札。設計そのものを Issue に書かない（CLAUDE.md 原則5）。
+- **設計の正はリポジトリの文書。** Issue は「どの文書のどこを、どの合格の条件まで」を指すだけ。設計そのものを Issue に書かない（CLAUDE.md 原則5）。
 - **合格の条件と確認コマンドが必須。** どちらかが無い Issue は起動しない。公式も「決まった判定が一番強い」「一番の失敗は早すぎる勝利宣言」としている。
 - **判定に使うファイルは変えさせない。** 確認コマンドに出てくるリポジトリのファイル（テストのファイル・確認の手伝い等）は、開始時の中身から変わっていたら合格にしない。
 - **決定待ちで止まらない。** 書いていない決定は Claude が「git で戻せて範囲が小さいほう」を選び、選んだことと戻し方を報告に書く（CLAUDE.md 原則1）。
@@ -36,7 +36,7 @@ GitHub Issue に札を付けておくと、`scripts/issue-run/issue-run.mjs` が
 | ラベル | 付ける人 | 意味 |
 |---|---|---|
 | `claude-run` | ユーザー（書き込みの権限のある人） | やってよい。**ひな形からは付かない。** 本文を読んでから人が付ける（公開のリポジトリでは、だれでもひな形から Issue を作れるため） |
-| `claude-working` | スクリプト | 実行中。途中で止めて残った札は、次に対象が 1 件以上ある実行の最初に外れる。対象 0 件の実行では残るので、`--issue <番号>` で起動して外す（仕様 1.1） |
+| `claude-working` | スクリプト | 実行中。途中で止めて残ったこのラベルは、次に対象が 1 件以上ある実行の最初に外れる。対象 0 件の実行では残るので、`--issue <番号>` で起動して外す（仕様 1.1） |
 | `claude-done` | スクリプト | 合格した。確認して閉じる |
 | （前提待ち） | スクリプト | ラベルは付けない。「## 前提」の Issue が済むまで始めず、まとめに WAITING と出る |
 | `claude-failed` | スクリプト | 合格の条件か確認コマンドが無い・回数切れ・異常終了。理由はコメント。直して外すと再び対象になる |
@@ -61,7 +61,7 @@ GitHub Issue に札を付けておくと、`scripts/issue-run/issue-run.mjs` が
 ## 起動
 
 ```text
-node scripts/issue-run/issue-run.mjs                    # 札の付いた Issue を全部、順に
+node scripts/issue-run/issue-run.mjs                    # ラベルの付いた Issue を全部、順に
 node scripts/issue-run/issue-run.mjs --issue 12         # 1件だけ
 node scripts/issue-run/issue-run.mjs --work-dir ../app-auth   # 作業場所を指定
 ```
@@ -93,7 +93,7 @@ node scripts/issue-run/issue-run.mjs --work-dir ../app-auth   # 作業場所を�
 読み方と、合格しなかったときの直し方は `docs/guides/procedures/issue-goal-setting.md` の 8 章。
 
 1. `docs/reports/YYYY/MM/DD/NN-issue-run.md` — 合格しなかった → 合格した、の順のまとめ（コミットされるので、作業場所はフォルダー名だけで書き、PC の中の絶対パスを書かない）
-2. 各 Issue のコメント — 1 行目に結果・**かかった分と開始〜終了の時刻**（分の単位。例 `6 分（2026-10-22 09:36〜09:42）`。始まりは「実行中」の札を付けた直後、終わりは合否が決まった時。起動前の点検は含まない）・回数・コミットの数・作業場所・`HEAD`。続いて合格の条件ごとの判定表・やったこと・コミット・**選んだこと（Claude が自分で決めた点と戻し方）**・やらなかったこと・未採用の改善
+2. 各 Issue のコメント — 1 行目に結果・**かかった分と開始〜終了の時刻**（分の単位。例 `6 分（2026-10-22 09:36〜09:42）`。始まりは実行中のラベルを付けた直後、終わりは合否が決まった時。起動前の点検は含まない）・回数・コミットの数・作業場所・`HEAD`。続いて合格の条件ごとの判定表・やったこと・コミット・**選んだこと（Claude が自分で決めた点と戻し方）**・やらなかったこと・未採用の改善
 3. 合格したものは確認して閉じ、push する
 4. 中身のログは `.issue-run/logs/<日時>/`（確認コマンドの写しは `issue-<番号>-check.mjs`、回した出力は `issue-<番号>-check<回>.txt`）
 5. 回の履歴は `.issue-run/logs/runs.log` — 回ごとに 1 行（タブ区切りで、実行の時刻・`対象 <N> 件`・`#7 PASS #8 NOT-PASS` のような結果・まとめの相対パス〔0 件と、まとめを書けなかった回は `-`〕）。対象 0 件の回も残る。`--dry-run` は書かない

@@ -4,7 +4,7 @@ description: Use when the user asks to create, write, list, check, or run GitHub
 
 # GitHub Issue Skill（作る・確かめる・無人で回す）
 
-Issue は「どの文書のどこを、どの合格の条件まで」の札。設計は Issue に書かずリポジトリの文書に書く（CLAUDE.md 原則5）。
+Issue は「どの文書のどこを、どの合格の条件まで」を指すだけ。設計は Issue に書かずリポジトリの文書に書く（CLAUDE.md 原則5）。
 **書き方の正は `docs/guides/procedures/issue-goal-setting.md`、仕組みの正は `docs/guides/working/issue-run.md`。** ここは手順だけ。ルールを書き足さない。
 
 ## 前提（毎回）
@@ -47,7 +47,7 @@ gh issue view <番号> --comments
 1. `node scripts/issue-run/issue-run.mjs --dry-run` を回し、対象・条件・守るファイルを報告する。
 2. 本番はユーザーが別のターミナルで起動するよう、コマンドを渡す:
    ```text
-   node scripts/issue-run/issue-run.mjs                 # 札の付いた Issue を全部、順に
+   node scripts/issue-run/issue-run.mjs                 # ラベルの付いた Issue を全部、順に
    node scripts/issue-run/issue-run.mjs --issue 12      # 1 件だけ
    ```
    作業場所には、ほかの作業をしていない worktree を選ぶ（無人の回のコミットと混ざらないように）。

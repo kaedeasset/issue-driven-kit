@@ -272,7 +272,7 @@ CSV は Shift_JIS と UTF-8 を選べる。列は受注番号・日付・取引�
 | Claude Code がすること | 理由 |
 |---|---|
 | 手元の変更をコミットして push する | 無人の回は GitHub の Issue と手元の git を見る。手元に未コミットの変更があると、無人の回のコミットに混ざる |
-| Issue を作り、札（`claude-run`）を付ける | 札の付いた Issue だけが無人の回の対象 |
+| Issue を作り、ラベル `claude-run` を付ける | ラベルの付いた Issue だけが無人の回の対象 |
 | `issue-run.ps1 -DryRun` で読めるか見る | 合格の条件の行数・確認コマンド・守るファイルを報告する |
 
 「作って」だけでも作りますが、**コミットと push を先に済ませる**この言い方が一番事故がありませんでした（実例 P60・P99・P104・P114）。
@@ -284,7 +284,7 @@ CSV は Shift_JIS と UTF-8 を選べる。列は受注番号・日付・取引�
 無人の回は、1 件で数分〜1 時間かかります。Claude Code の会話の中では回さず、**人が別の PowerShell の窓で**実行します。
 
 ```powershell
-pwsh Scripts\issue-run.ps1            # 札の付いた Issue を全部、順に
+pwsh Scripts\issue-run.ps1            # ラベルの付いた Issue を全部、順に
 pwsh Scripts\issue-run.ps1 -Issue 12  # 1 件だけ
 ```
 
@@ -510,7 +510,7 @@ Issue にしない小さな仕事や質問は、ふつうに頼みます。
 | `おすすめで決めて`／`おすすめで` | 2・6 | 推しの案で決め、設計書の行を置き換える | なし | 設計書の「決めること」 | 2／1 |
 | `進めて` | 2〜 | 直前に出した次の段に進む | 段による | 直前の返答 | 1／1（ほかに提案に追加 1） |
 | `Issueにして`／`〜を Issue にして` | 3・7・11 | 下書き・確認コマンドを回して落ちることを見る | なし | `github-issue` A | 2／0 |
-| `作って` | 3・7 | 下書きを GitHub に作る・札を付ける・DryRun | **Issue** | `github-issue` A-8・`CLAUDE.md` 原則 1 | 2／0 |
+| `作って` | 3・7 | 下書きを GitHub に作る・ラベルを付ける・DryRun | **Issue** | `github-issue` A-8・`CLAUDE.md` 原則 1 | 2／0 |
 | `コミットしてpushしてから作って` | 3・7 | コミット → push → Issue | **push・Issue** | `commit`・`push`・`github-issue` | 4／0 |
 | `issue-run を起動した` | 4 | ログを読むだけ。回の間は書き換えない | なし | `github-issue` C | 4／1 |
 | `様子見て`／`確認して`／`終わったみたい` | 5 | ログ・まとめ・コメントを読んで報告 | なし | `github-issue` C-3 | 10／2 |

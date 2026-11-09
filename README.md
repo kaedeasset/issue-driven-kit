@@ -87,10 +87,10 @@ AI が途中で止まらないのはなぜ？ → [issue-run.md](docs/guides/wor
 
 | 置き場 | 中身 |
 |---|---|
-| [`shared/spec/`](shared/spec/issue-run-spec.md) | 無人の Issue 実行の仕様の正（2 つの版はこれを実装する） |
+| [`shared/spec/`](shared/spec/) | 無人の Issue 実行の仕様の正（2 つの版はこれを実装する） |
 | `editions/unity/`・`editions/node/` | 2 つの版：`files/`（利用先に写す物）と入れるスクリプト |
-| [`shared/manuals/`](shared/manuals/issue-driven-kit-install-guide.md) | 使う人向けの説明書（導入ガイド・チーム向けガイドなど） |
-| [`docs/design/`](docs/design/issue-driven-kit-basic-design.md) | キットの設計 |
+| [`shared/manuals/`](shared/manuals/) | 使う人向けの説明書（導入ガイド・チーム向けガイドなど） |
+| [`docs/design/`](docs/design/) | キットの設計 |
 | `tests/` | キット自身のテスト（`npm test`＝`node --test`） |
 
 ## 作者・ライセンス
