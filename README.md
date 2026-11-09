@@ -5,7 +5,7 @@ GitHub Issue に合格の条件と確認コマンドを書いてラベルを付�
 ## Summary (English)
 
 Write pass criteria and a check command in a GitHub Issue, add a label, and Claude Code runs design, implementation and tests unattended until the check passes.
-Track record (as of 2026-11-09): in the original private Unity repository, 98 of 100 unattended Issues passed over 461 commits; in this repository, all 44 unattended Issues passed.
+Track record (as of 2026-11-09): in the original Unity repository KaedeScapeBuii (private), 98 of 100 unattended Issues passed over 461 commits; in this repository kaedeasset/issue-driven-kit (public), all 46 unattended Issues passed.
 It works by combining headless mode (`claude -p`), a Stop hook, `--resume` with the check command's output, and deny rules in settings, so the agent neither stops halfway, claims "done" without passing, nor runs dangerous operations.
 
 ## 実績
@@ -14,11 +14,11 @@ It works by combining headless mode (`claude -p`), a Stop hook, `--resume` with 
 
 | 対象 | 数字 |
 |---|---|
-| 元の Unity のリポジトリ（private） | 19 日（2026-10-22〜11-09）・コミット 461 件・無人の回に渡した Issue 100 件のうち 98 件が合格 |
-| 同じリポジトリで作った物 | Unity の撮影ツール。描画方式 3 つ（Built-in・URP・HDRP）で EXE まで |
-| このリポジトリ | 無人の回に渡した Issue 44 件が全部合格 |
+| 元の Unity のリポジトリ KaedeScapeBuii（private） | 19 日（2026-10-22〜11-09）・コミット 461 件・無人の回に渡した Issue 100 件のうち 98 件が合格 |
+| KaedeScapeBuii で作った物 | Unity の撮影ツール。描画方式 3 つ（Built-in・URP・HDRP）で EXE まで |
+| このリポジトリ kaedeasset/issue-driven-kit（公開） | 無人の回に渡した Issue 46 件が全部合格 |
 
-合格した Issue はどれ？ → [このリポジトリの合格した Issue の一覧](https://github.com/kaedeasset/issue-driven-kit/issues?q=label%3Aclaude-done)
+合格した Issue はどれ？ → [kaedeasset/issue-driven-kit の合格した Issue の一覧](https://github.com/kaedeasset/issue-driven-kit/issues?q=label%3Aclaude-done)
 
 ## Issue 駆動を支える技術
 
