@@ -2,9 +2,9 @@
   "kit": "issue-driven-kit",
   "edition": "node",
   "repo": "kaedeasset/issue-driven-kit",
-  "commit": "c5cb82854b3be91fbc72dbcd81d3f9998e4098f8",
+  "commit": "daeef6bf96f36d3addc449d3030c700069b66637",
   "dirty": true,
-  "installedAt": "2026-11-09T10:43:09.073Z",
+  "installedAt": "2026-11-09T11:10:36.691Z",
   "files": [
     ".claude/issue-run/prompt.md",
     ".claude/issue-run/settings.json",
@@ -35,6 +35,7 @@
     "scripts/issue-run/issue-run.mjs",
     "scripts/issue-run/lib.mjs",
     "scripts/issue-run/proc.mjs",
+    "scripts/issue-run/stats.mjs",
     "scripts/issue-run/sync-lanes.mjs",
     "scripts/test.mjs"
   ]

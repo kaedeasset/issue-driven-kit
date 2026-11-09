@@ -102,6 +102,28 @@ node scripts/issue-run/issue-run.mjs --work-dir ../app-auth   # 作業場所を�
 
 **`docs/guides/procedures/issue-goal-setting.md` が正。** ここには書かない。ひな形は `.github/ISSUE_TEMPLATE/claude-run.md`。会話の中で作るなら `github-issue` スキル。
 
+## 実績を数える
+
+無人の回の実績（回した Issue の数・合格した数・1 回目で合格した数・かかった分）は、手で数えずに `scripts/issue-run/stats.mjs` で数え直す。GitHub の Issue（開いている物も閉じた物も）の結果のコメントを読むだけで、何も書き込まない。
+
+```text
+node scripts/issue-run/stats.mjs                      # 作業場所の origin のリポジトリ
+node scripts/issue-run/stats.mjs --repo <owner/name>  # ほかのリポジトリ（Unity 版を入れた物も数えられる）
+```
+
+| 出す行 | 意味 |
+|---|---|
+| 回した Issue | 結果のコメント（1 行目が `issue-run.mjs: **PASS** — 6 分…` の形。`issue-run.ps1` の物も読む）が 1 つ以上ある Issue の数。実績の分母 |
+| 合格 | 回した Issue のうち、いちばん後の結果のコメントが PASS の数 |
+| 1 回目で合格 | 結果のコメントが 1 つだけで、それが PASS・1 回の数（不合格の後にやり直して合格した物は入らない） |
+| 分 | 合格した Issue ごとに、全部の結果のコメントの分を足した数（合格までの無人の時間）の中央値と合計 |
+| 結果のコメント | 結果のコメントの数と、PASS・NOT-PASS・ABORTED ごとの数 |
+| ラベル（参考） | `claude-run`（うちまだ回していない物）・`claude-done`・`claude-failed` の付いた Issue の数。ラベルは人が付け替えるので、実績はコメントで数える |
+
+Issue がちょうど 1000 件のときと、コメントが 100 件以上ある Issue があるときは、取りこぼしたかもしれないと知らせる（数えることは止めない）。`gh` が失敗したら理由を出して終了コード 1。合否を出す道具ではないので `Result:` 行は出さない。
+
+README などに数を写すときは、数えた日付を添える（数は回すたびに変わる）。
+
 ## 部品
 
 | ファイル | 役目 |
@@ -110,6 +132,7 @@ node scripts/issue-run/issue-run.mjs --work-dir ../app-auth   # 作業場所を�
 | `scripts/issue-run/lib.mjs`・`proc.mjs` | 本文の読み方・指紋・コメントの形（lib）と、子のプロセスの起動（proc。Windows と Mac で同じに動かす） |
 | `scripts/issue-run/check-lib.mjs` | 確認コマンドから使う手伝い（`runTests`・`requireTests`・`gitClean`・`done` など） |
 | `scripts/issue-run/doctor.mjs` | 点検（道具・ログイン・origin・ラベル・部品・設定・vitest・眠らせない） |
+| `scripts/issue-run/stats.mjs` | 実績を数える（回した・合格・1 回目で合格・分。上の「実績を数える」） |
 | `scripts/test.mjs` | 確認コマンドが呼ぶテストの入口（`Result:` 行・0 件は FAIL） |
 | `.claude/issue-run/prompt.md` | 渡す指示文（Claude の振る舞いを変えたいときはここ） |
 | `.claude/issue-run/settings.json` | `--settings` で渡す設定（deny・Stop hook・env） |
