@@ -1,0 +1,77 @@
+#!/bin/sh
+# commit-msg — コミットメッセージの形を検査する（決まりの正は commit-hooks の rules.md）。
+# 中継の .git/hooks/commit-msg（install.sh が書く）から呼ばれる。
+#   sh hooks/commit-msg <メッセージのファイル>
+# 外れたら COMMIT-MSG FAIL <M1,…> と項目ごとの理由とひな形を出して 1 で終わる。
+# 検査しない件名: Merge ・Revert "・fixup!・squash!・amend!
+
+msg="$1"
+[ -f "$msg" ] || { echo "commit-msg: メッセージのファイルが無い: $msg" >&2; exit 1; }
+# 種類の一覧と字数の上限は repo ごとの commit-hooks.conf
+. "$(dirname "$0")/conf.sh"
+types=$(conf types) || exit 1
+max=$(conf subject_max) || exit 1
+
+# 文字数はロケールに頼らず数える。UTF-8 の続きのバイト（0x80〜0xBF）を除いた数が字数になる
+LC_ALL=C awk -v types="$types" -v max="$max" '
+function ulen(s) { gsub(/[\200-\277]/, "", s); return length(s) }
+BEGIN { n = 0; max += 0 }
+# git が消す行: コメント（#）と、-v のときのはさみの行より後
+/^# -+ >8 -+$/ { cut = 1 }
+cut { next }
+/^#/ { next }
+{ sub(/\r$/, ""); line[++n] = $0 }
+END {
+    # 末尾の空行は数えない（git も消す）
+    while (n > 0 && line[n] ~ /^[ \t]*$/) n--
+    subj = line[1]
+    if (subj ~ /^Merge / || subj ~ /^Revert "/ || subj ~ /^(fixup|squash|amend)! /) exit 0
+
+    fail = ""; why = ""
+    # M1: 種類(範囲): 説明（範囲は任意）
+    if (subj !~ ("^(" types ")(\\([^()]+\\))?: [^ ]")) {
+        fail = fail ",M1"; why = why "\n  M1 件名が「種類(範囲): 説明」の形でない（種類は " types "・範囲は省ける）: " subj
+    } else {
+        # M2: 説明（": " より後）が max 字以内
+        d = subj; sub(/^[^:]*: /, "", d)
+        if (ulen(d) > max) { fail = fail ",M2"; why = why "\n  M2 説明が " ulen(d) " 字（" max " 字以内。細目・指示の引用・日付は本文へ）" }
+    }
+    # M3: 件名の次は空行
+    if (n >= 2 && line[2] !~ /^[ \t]*$/) { fail = fail ",M3"; why = why "\n  M3 件名の次の行が空行でない" }
+
+    # 本文（3 行目から --- の行まで）と感想（--- の行より後）
+    sep = 0
+    for (i = 2; i <= n; i++) if (line[i] == "---") { sep = i; break }
+    last = sep ? sep - 1 : n
+    check = 0; other = 0
+    for (i = 3; i <= last; i++) {
+        l = line[i]
+        if (l ~ /^[ \t]*$/ || l ~ /^Co-Authored-By:/) continue
+        if (l ~ /^確かめ(:|：)/) check++; else other++
+    }
+    # M4: 確かめの行と、それ以外の本文（なぜ・変えたこと）
+    if (!check) { fail = fail ",M4"; why = why "\n  M4 「確かめ:」の行が無い（回していなければ「確かめ: なし（文書のみ）」）" }
+    if (!other) { if (index(fail, ",M4") == 0) fail = fail ",M4"; why = why "\n  M4 本文（なぜ・変えたこと）が無い" }
+    # M5: --- の後に感想
+    feel = 0
+    if (sep) for (i = sep + 1; i <= n; i++) if (line[i] !~ /^[ \t]*$/ && line[i] !~ /^Co-Authored-By:/) feel++
+    if (!feel) { fail = fail ",M5"; why = why "\n  M5 「---」だけの行と、その後の感想（1〜3 行）が無い" }
+
+    if (fail == "") exit 0
+    print "COMMIT-MSG FAIL " substr(fail, 2) why
+    print ""
+    print "形（commit-hooks の rules.md）:"
+    print "  fix(login): 期限切れのときにログイン画面へ戻す"
+    print ""
+    print "  期限が切れても前の画面に留まり、操作がすべて失敗していた。"
+    print "  期限切れを受けたらログイン画面へ戻す。"
+    print ""
+    print "  確かめ: 単体テスト 42 件 PASS。期限を 1 秒にして手で戻ることを確認。"
+    print ""
+    print "  ---"
+    print "  原因は思ったより手前にあった。"
+    print ""
+    print "  Co-Authored-By: …"
+    print "--no-verify は使わない。メッセージを直してコミットし直す。"
+    exit 1
+}' "$msg" >&2
