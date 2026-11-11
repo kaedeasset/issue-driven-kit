@@ -9,7 +9,7 @@ project: issue-driven-kit
 
 | 項目 | 内容 |
 |---|---|
-| 状態 | 設計・**了承済み**（2026-10-28 ユーザー。その前に別のエージェントの見直しの指摘〈止める 1・直す 6・軽い 5〉を入れた）。作り方：`scripts/git-hooks/` と試験は無人の回の Issue、CLAUDE.md の文・中継を入れること・G2 の実測は main のセッション。**作った**（2026-10-28。#38 で本体と試験・G1 は `Result: PASS 83/83`。main で中継を入れ〈2 回目は変化なし〉、G2 を実測：`node` が PATH に無い Bash から、形でないコミットは M4・M5 で終了コード 1、形のコミットは 0。試しのコミットは `reset --soft` で取り消した） |
+| 状態 | **置き換えた**（2026-11-11 ユーザー決定）：キット自身のフックは kaedeasset/commit-hooks（`Tools/commit-hooks/` の subtree。形の正は `Tools/commit-hooks/rules.md`）に置き換え、`scripts/git-hooks/` と `tests/git-hooks.test.mjs` は消した。この設計書は作ったときの記録として残す。以下は置き換える前の状態。設計・**了承済み**（2026-10-28 ユーザー。その前に別のエージェントの見直しの指摘〈止める 1・直す 6・軽い 5〉を入れた）。作り方：`scripts/git-hooks/` と試験は無人の回の Issue、CLAUDE.md の文・中継を入れること・G2 の実測は main のセッション。**作った**（2026-10-28。#38 で本体と試験・G1 は `Result: PASS 83/83`。main で中継を入れ〈2 回目は変化なし〉、G2 を実測：`node` が PATH に無い Bash から、形でないコミットは M4・M5 で終了コード 1、形のコミットは 0。試しのコミットは `reset --soft` で取り消した） |
 | 元 | kaedevn の指示書 `Docs/Reports/2026/10/28/01-commit-message-rules-and-hooks.md`（2026-10-28。kaedevn のユーザー判断：件名＋本文に「なぜ・変えたこと」、`確かめ:` の行、`---` の後の感想。守らせ方はフック） |
 | 範囲 | **このリポジトリ（キット自身）だけ**（2026-10-28 ユーザー決定）。Node 版・Unity 版の部品（`editions/`）と、利用先へ配るものは変えない |
 
