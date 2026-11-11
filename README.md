@@ -79,10 +79,53 @@ AI が途中で止まらないのはなぜ？ → [issue-run.md](docs/guides/wor
 
 ## 使ってみる
 
-- Unity 版：`pwsh editions\unity\install.ps1 -Target <リポジトリ> -DryRun` → `-DryRun` を外して本番
-- Node 版：`node editions/node/install.mjs --target <リポジトリ> --dry-run` → `--dry-run` を外して本番
+2 つのリポジトリを自分の PC に clone し、**自分のリポジトリで Claude Code を起動して、clone した場所を絶対パスで示して入れてもらいます。** clone したフォルダーは読むだけで、そこでは作業しません。
 
-道具の準備から最初の Issue まで、各手順で Claude Code に入力するプロンプトは？ → [導入ガイド](shared/manuals/issue-driven-kit-install-guide.md)
+| リポジトリ | 役目 | 要るか |
+|---|---|---|
+| [kaedeasset/issue-driven-kit](https://github.com/kaedeasset/issue-driven-kit)（ここ） | Issue を無人で回す仕組み | 要る |
+| [kaedeasset/document-authoring](https://github.com/kaedeasset/document-authoring) | 設計書・手順書の書き方と検査（`check.sh`）。キットの `design-cycle` が書き方をここに任せる | おすすめ |
+
+先に要る物：Node.js 22.14.0・GitHub CLI（`gh auth login` 済み）・Claude Code。入れ方は [導入ガイドの手順 1](shared/manuals/issue-driven-kit-install-guide.md#手順-1道具をそろえる)。
+
+### 1. 2 つを自分の PC に clone する
+
+置く場所はどこでもかまいません。下の例は `D:\tools\`（Mac は `~/tools/`）に置いた場合です。
+
+```text
+cd D:\tools
+git clone https://github.com/kaedeasset/issue-driven-kit.git
+git clone https://github.com/kaedeasset/document-authoring.git
+```
+
+### 2. 自分のリポジトリで Claude Code に入れてもらう
+
+自分のリポジトリのフォルダーで `claude` を起動し、上から順に入力します（まだリポジトリが無ければ、親のフォルダーで `GitHub に private のリポジトリ <名前> を作って、ここに clone して`）。パスは自分が clone した場所に読み替えます。
+
+| 順 | 入力するプロンプト | 見るところ |
+|---|---|---|
+| 1 | `D:\tools\issue-driven-kit\shared\manuals\issue-driven-kit-install-guide.md を読んで、このリポジトリに Node 版を入れて。まず --dry-run で、写すファイルと、ぶつかるファイルを見せて`（Unity のプロジェクトなら「Unity 版」） | 写すファイルの一覧。ぶつかるファイルがあれば、どうするか決める |
+| 2 | `入れて` | 最後の行が `Result: PASS (… 件を写した …)`。`CLAUDE.md` の「プロジェクト」「コマンド」が自分のリポジトリに合わせて書かれる |
+| 3 | `テストの入口を、全部・0 件・わざと落とすテストを 1 本足す、の 3 つで回して、最後の Result: 行と終了コードを見せて` | 全部は `Result: PASS`、0 件とわざと落とすは `Result: FAIL` |
+| 4 | `issue-run の点検を回して` | 最後の行が `Result: PASS  WARN <数>`（NG が 0） |
+| 5 | `キットを入れた分をコミットして` | 作業ツリーが綺麗になる（6 の取り込みは綺麗でないと始まらない） |
+| 6 | `D:\tools\document-authoring\docs\install.md を読んで、そのとおりにこのリポジトリへ document-authoring を取り込んで。push はしないで` | `DOC-TEST PASS cases=<数>` と `DOC-CHECK … files=<数> errors=<数>`（既にある文書のエラーを直すかは自分で決める） |
+| 7 | `pushして` | GitHub に上がる。無人の回は GitHub の Issue を読むので、ここまで要る |
+
+### 3. 最初の Issue を回す
+
+最初は、合否を機械で測りやすい「文書を書かせる Issue」にします。
+
+| 順 | 入力するプロンプト・すること |
+|---|---|
+| 1 | `<作りたい物の説明>。基本設計書にして、その後どこから Issue 駆動にするか検討して` → `おすすめで決めて` |
+| 2 | `詳細設計を書かせる Issue にして` → 下書きを読んで `コミットしてpushしてから作って` |
+| 3 | **別の窓で**、自分のリポジトリのフォルダーで `node scripts/issue-run/issue-run.mjs` を起動する → Claude Code に `issue-run を起動した` |
+| 4 | `様子見て` … `終わったみたい` → `コミットしてpushして` → `doneはcloseして` |
+
+多くの段で、次に入力するプロンプトが入力欄に灰色で出ます（Tab → Enter で送れる）。
+
+各手順の詳しい説明・困ったとき・キットを新しくするときは？ → [導入ガイド](shared/manuals/issue-driven-kit-install-guide.md)
 
 ## 中身
 
