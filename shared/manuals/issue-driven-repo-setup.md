@@ -247,6 +247,7 @@ pwsh Scripts\issue-run.ps1 -DryRun を回して
 
 - [ ] `CLAUDE.md` に、付録 A の「原則」5 つと「守るもの」（技術ごと）と「入口」「置き場」がある
 - [ ] `.claude/skills/` に `github-issue`・`design-cycle`・`commit`・`push`・`save-report` がある（文書の決まりも使うなら、別の `document-authoring` も）
+- [ ] コミットの検査も使うなら、別の commit-hooks が `Tools/commit-hooks/` にあり、`.git/hooks/` に `commit-msg`・`pre-commit` が入っている
 - [ ] `.claude/issue-run/` に `prompt.md`・`settings.json`・`stop-hook.ps1` がある
 - [ ] `.github/ISSUE_TEMPLATE/claude-run.md` がある
 - [ ] テストの入口が、全部・0 件・落ちるの 3 つで期待どおりの `Result:` 行と終了コードを返す

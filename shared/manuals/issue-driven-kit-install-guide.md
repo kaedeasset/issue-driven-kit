@@ -37,7 +37,7 @@ project: issue-driven-kit
 ## 0. 3 行で
 
 1. **版を選びます。** Unity のプロジェクトなら **Unity 版**（Windows・PowerShell）、Node.js＋TypeScript のプロジェクトなら **Node 版**（Windows・Mac・Node.js だけで動き、PowerShell は要りません）。
-2. **キットを clone し、自分のリポジトリを作り（または clone し）、キットの入れる脚本を 1 回実行します。** 入れる脚本はファイルを写すだけで、コミットも push もしません。
+2. **キット・document-authoring・commit-hooks の 3 つを道具の置き場に clone し、自分のリポジトリの Claude Code に、置き場の絶対パスを示して入れてもらいます。** キットの入れる脚本はファイルを写すだけで、コミットも push もしません。2 つは 5.3・5.4 で取り込みます。
 3. **点検を通してから、最初の Issue を「文書を書かせる」小さなもので回します。** ここまでの流れは、手順ごとのプロンプトを順に入力すれば進みます。
 
 ```mermaid
@@ -146,13 +146,23 @@ claude setup-token
 
 ## 手順 2：キットを clone する
 
-キットは公開のリポジトリです（MIT ライセンス）。GitHub のアカウントがあれば、誰でも clone できます。
+キットと、一緒に使う 2 つ（document-authoring・commit-hooks。5.3・5.4 で入れる）は、どれも公開のリポジトリです（MIT ライセンス）。3 つを「道具の置き場」に clone します。置き場は読むだけで、そこでは作業しません。
+
+置き場にするフォルダー（例：Windows `D:\tools`、Mac `~/tools`）で Claude Code を起動し、こう入力します。
+
+```text
+kaedeasset の issue-driven-kit・document-authoring・commit-hooks の 3 つを、ここに clone して
+```
+
+コマンドで clone してもかまいません。
 
 ```text
 git clone https://github.com/kaedeasset/issue-driven-kit.git
+git clone https://github.com/kaedeasset/document-authoring.git
+git clone https://github.com/kaedeasset/commit-hooks.git
 ```
 
-置く場所はどこでもかまいません。このガイドでは `<キット>` と書きます（例：Windows `C:\work\issue-driven-kit`、Mac `~/work/issue-driven-kit`）。
+このガイドでは、キットを clone した場所を `<キット>` と書きます（例：Windows `D:\tools\issue-driven-kit`、Mac `~/tools/issue-driven-kit`）。この先のプロンプトでは、`<キット>` を絶対パスに置き換えて入力します。
 
 ---
 
@@ -228,9 +238,9 @@ gh repo clone <アカウント>/<名前>
 |---|---|
 | 1 | 入れる脚本を `--dry-run`（Unity 版は `-DryRun`）で実行し、写すファイルの一覧と、既にあるファイルとぶつかる所を見せる。ここで止まる |
 | 2 | 人が「入れて」と入力したら、入れる脚本を本番で実行する。既にあるファイルは上書きしない |
-| 3 | **Node 版で、テストを vitest で回すとき**：vitest（と、Cloudflare Workers のプロジェクトなら `@cloudflare/vitest-plugin`。旧 `@cloudflare/vitest-pool-workers` は非推奨）を `devDependencies` に足し、`npm test` が `scripts/test.mjs` を呼ぶようにする。`package.json` の `engines` と `.nvmrc` に Node.js の版を書く。版の組み合わせは公式の案内で確かめて固定する（確かめた版は「[確かめた版](#確かめた版)」の表。入れる脚本はパッケージを足さない） |
+| 3 | **Node 版で、テストを vitest で回すとき**：vitest（と、Cloudflare Workers のプロジェクトなら `@cloudflare/vitest-plugin`。旧 `@cloudflare/vitest-pool-workers` は非推奨）を `devDependencies` に足し、`npm test` が `scripts/test.mjs` を呼ぶようにする。`package.json` の `engines` と `.nvmrc` に Node.js の版を書く。版の組み合わせは公式の案内で確かめて固定する（確かめた版は「[確かめた版](#確かめた版)」の表。入れる脚本はパッケージを足さない）。足したら `npm install`（`package-lock.json` があれば `npm ci`）を回す。手順 5 のテストの入口と点検は、`node_modules` が無いと落ちる |
 | 4 | **Node 版だけ**：`.issue-kit/config.json` に、テストを回す道具を書く（入れる脚本は `{ "test": { "runner": "vitest" } }` のひな形を写す。vitest ならそのまま）。`node --test` なら `{ "test": { "runner": "node", "files": ["tests/*.test.mjs"] } }`。言語が Node でないとき（.NET・Java など）は `runner` を `command` にし、テストを回すコマンドと、結果の JUnit の XML が出るフォルダーを書く（例は手順書 `docs/guides/procedures/node-test-procedure.md` と、キットの移行ガイド `shared/manuals/issue-driven-kit-migration-guide.md` の 4 章）。このときは 3 の vitest と `npm test` は要らない |
-| 5 | `CLAUDE.md` の「プロジェクト」「コマンド」を、このリポジトリに合わせて書く（何を作るか・使う技術・テストの打ち方）。入れる脚本が `CLAUDE.kit.md` などを横に置いたときは、先にその中身を既にある物に足して、横に置いた物を消す |
+| 5 | `CLAUDE.md` の「プロジェクト」「コマンド」を、このリポジトリに合わせて書く（何を作るか・使う技術・テストの打ち方）。入れる脚本が `CLAUDE.kit.md` などを横に置いたときは、先にその中身を既にある物に足して、横に置いた物を消す。「守るもの」などに残った `<…>`（依存の定義・DB の移行・デプロイのコマンド・生成物）も埋める |
 
 Cloudflare Workers のプロジェクトでは、`vitest.config.ts` で `@cloudflare/vitest-plugin` の `cloudflareTest` を使い、`wrangler.jsonc` を読ませます（Cloudflare の公式の案内「Write your first test」の書き方）。
 
@@ -351,6 +361,26 @@ D:\tools\document-authoring\docs\install.md を読んで、そのとおりにこ
 
 取り込みは作業ツリーが綺麗でないと始まりません（`fatal: working tree has modifications.  Cannot add.`）。手順 4〜5 で入ったファイルを先にコミットするか、手順 7 の後に回します。人向けの詳しい説明は document-authoring の [はじめての導入](https://github.com/kaedeasset/document-authoring/blob/main/docs/getting-started.md) にあります。
 
+### 5.4 コミットの検査を入れる（commit-hooks・別のリポジトリ）
+
+キットは、利用先にコミットのフックを入れません。無人の回のコミットも含めて、コミットメッセージの形と載せてはいけない物（秘密・生成物・大きいファイル）を機械で止めたいときは、独立したリポジトリ [kaedeasset/commit-hooks](https://github.com/kaedeasset/commit-hooks) を別に入れます（入れることを勧めます）。git の `commit-msg` と `pre-commit` のフックが入り、決まりに合わないコミットはその場で止まります。止まったときは出力に外れた項目と直し方が出るので、Claude Code が読んで直してコミットし直します。
+
+commit-hooks を自分の PC に clone してから（例 `D:\tools\commit-hooks`・Mac は `~/tools/commit-hooks`）、このリポジトリの Claude Code に入力します。5.3 と同じく、作業ツリーが綺麗な状態で始めます（5.3 の最後のコミットの後）。
+
+```text
+D:\tools\commit-hooks\docs\install.md を読んで、そのとおりにこのリポジトリへ commit-hooks を取り込んで。
+取り込みは install.md の手順 2 のとおり GitHub から git subtree add で入れて（clone したフォルダーは読むだけ）。
+1 の調べた結果・選んだ profile・各コマンドの最後の行を報告して。push はしないで。
+```
+
+| 見るところ | 合格の形 |
+|---|---|
+| 試験 | `HOOKS-TEST PASS cases=<数> os=<OS>` |
+| 入れる | `HOOKS-INSTALL conf=created commit-msg=installed pre-commit=installed others=… verdict=PASS`。profile は Node 版なら `node`、Unity 版なら `unity` |
+| 本物で | 古い形のメッセージ（`fix: 試し`）が止まり、決まりの形が通る。最後のコミット（設定とスキルの変更）がフックを通る |
+
+キットの `commit` スキル（`.claude/skills/commit/SKILL.md`）は残ります。取り込みの手順 6 で、メッセージとステージの決まりの節が「正は `Tools/commit-hooks/…`」に置き換わります。`.git/hooks/` は git で共有されないので、チームのほかの人や別の PC では、pull した後に `sh Tools/commit-hooks/install.sh <profile>` を 1 回実行します。人向けの詳しい説明は commit-hooks の [README](https://github.com/kaedeasset/commit-hooks#readme) と [取り込む（導入ガイド）](https://github.com/kaedeasset/commit-hooks/blob/main/docs/install.md) にあります。
+
 ---
 
 ## 手順 6：最初の Issue を回す
@@ -420,6 +450,8 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 
 前のキットで入れた `.claude/skills/document-authoring/SKILL.md` は、`--update` では消えません（キットから外したため）。5.3 の取り込みの手順 1 が見つけて、消してから document-authoring を入れるかを聞きます。
 
+5.4 で commit-hooks を入れたリポジトリでは、`--update` がキットの `.claude/skills/commit/SKILL.md` を上書きし、「正は `Tools/commit-hooks/…`」に置き換えた節が元に戻ります。上げた後に `commit-hooks の docs/install.md の手順 6 を、このリポジトリの commit スキルにもう一度当てて` と入力します。
+
 上げる版で設定や脚本の形が変わったときは、キットの移行ガイド（`shared/manuals/issue-driven-kit-migration-guide.md`）の手順で移します。古い形は読みません（例：テストの入口の設定は `.issue-kit/config.json` だけを読み、無ければ `Result: FAIL`）。
 
 ---
@@ -448,6 +480,7 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 | 1 | `GitHub CLI と Node.js 22.14.0 を入れて、npm を 11.6.2 にして` |
 | 1 | `! gh auth login`（人が入力） |
 | 1 | Claude Code の外のターミナルで `claude setup-token`（人が回す。出た値は会話に貼らないで、自分で環境変数 `CLAUDE_CODE_OAUTH_TOKEN` に入れる） |
+| 2 | `kaedeasset の issue-driven-kit・document-authoring・commit-hooks の 3 つを、ここに clone して`（道具の置き場で） |
 | 3A | `GitHub に private のリポジトリ <名前> を作って、ここに clone して` |
 | 3A | `このリポジトリを Node.js 22.14.0・npm 11.6.2・TypeScript・vitest の最小のプロジェクトにして。…コミットはまだしないで` |
 | 4 | `<キット> の導入ガイドを読んで、このリポジトリに <Node 版／Unity 版> を入れて。まず --dry-run で、写すファイルと、ぶつかるファイルを見せて` |
@@ -455,6 +488,7 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 | 5 | `テストの入口を、全部・0 件・わざと落とすテストを 1 本足す、の 3 つで回して、最後の Result: 行と終了コードを見せて。わざと落とすテストは最後に消して` |
 | 5 | `issue-run の点検を回して`・`issue-run を DryRun で回して` |
 | 5.3 | `<document-authoring を clone した場所>\docs\install.md を読んで、そのとおりにこのリポジトリへ document-authoring を取り込んで。…push はしないで` |
+| 5.4 | `<commit-hooks を clone した場所>\docs\install.md を読んで、そのとおりにこのリポジトリへ commit-hooks を取り込んで。…push はしないで` |
 | 6 | `<作りたい物>…基本設計書にして、その後どこから Issue 駆動にするか検討して` → `おすすめで決めて` → `詳細設計を書かせる Issue にして` → `コミットしてpushしてから作って` → `issue-run を起動した` → `様子見て` → `終わったみたい` → `コミットしてpushして` → `doneはcloseして` |
 | 7 | `キットを入れた分をコミットしてpushして` |
 | 8 | `<キット> を git pull して、このリポジトリのキットを --update で新しくして。手を入れたファイルとの差を先に見せて` |
@@ -475,7 +509,7 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 ├─ vitest.config.ts                   （手順 4 で。要るとき）
 ├─ .gitignore                         .issue-run/ の 1 行を足す（無ければ作る）
 ├─ .claude/
-│  ├─ skills/                         github-issue・design-cycle・commit・push・pr・save-report・lane-sync・file-header（どれも SKILL.md）。document-authoring は 5.3 で別に入れる
+│  ├─ skills/                         github-issue・design-cycle・commit・push・pr・save-report・lane-sync・file-header（どれも SKILL.md）。document-authoring は 5.3 で別に入れる。commit-hooks は 5.4 で別に入れる（Tools/commit-hooks/ と .git/hooks/ のフック）
 │  └─ issue-run/                      prompt.md・settings.json・stop-hook.mjs
 ├─ .github/ISSUE_TEMPLATE/claude-run.md
 ├─ .issue-kit/config.json             テストの入口の設定（どの道具で回すか。ひな形は vitest。手順 4 で自分の道具に直す。--update で上書きしない）

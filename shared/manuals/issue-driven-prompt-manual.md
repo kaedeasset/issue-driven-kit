@@ -121,6 +121,7 @@ Claude Code は、返答が終わると、入力欄に**次に入力しそうな
 | `.claude/skills/commit/`・`push/` | 「コミットして」「pushして」の意味 |
 | `.claude/skills/save-report/` | 記録の書き方と置き場 |
 | `.claude/skills/document-authoring/`（キットとは別に入れる。kaedeasset/document-authoring） | 文書の書き方・ひな形・検査（`check.sh`） |
+| `Tools/commit-hooks/`・`.git/hooks/`（キットとは別に入れる。kaedeasset/commit-hooks） | コミットメッセージの形と載せない物を、コミットの時に止めるフック |
 | `Scripts/issue-run.ps1`・`.claude/issue-run/` | 無人の回の本体・指示文・止まらない仕組み（Stop hook）・禁止の設定 |
 | `.github/ISSUE_TEMPLATE/claude-run.md` | Issue のひな形 |
 | テストの入口（このリポジトリでは `Scripts/unity-test.ps1`） | 確認コマンドが呼ぶ。自社では `npm test` や `pytest` を呼ぶ脚本に替える |

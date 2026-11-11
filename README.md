@@ -58,6 +58,7 @@ AI が途中で止まらないのはなぜ？ → [issue-run.md](docs/guides/wor
 | worktree のレーン | 作業を並べて動かし、朝に main へ同期する |
 | CLAUDE.md | 短く保ち、作業ごとの文書へ振り分ける |
 | [document-authoring](https://github.com/kaedeasset/document-authoring)（別のリポジトリ） | 設計書・手順書を決まった形で書き、検査（`check.sh`）を通してから出す。キットとは別に入れる（[導入ガイドの 5.3](shared/manuals/issue-driven-kit-install-guide.md#53-文書の決まりを入れるdocument-authoring別のリポジトリ)） |
+| [commit-hooks](https://github.com/kaedeasset/commit-hooks)（別のリポジトリ） | コミットメッセージの形と、載せてはいけない物（秘密・生成物・大きいファイル）を git のフックで止める。無人の回のコミットも同じ検査を通る。キットとは別に入れる（[導入ガイドの 5.4](shared/manuals/issue-driven-kit-install-guide.md#54-コミットの検査を入れるcommit-hooks別のリポジトリ)） |
 
 誰が何をして、1 件がどう流れる？ → [issue-driven-development.md](docs/guides/working/issue-driven-development.md)
 
@@ -79,53 +80,73 @@ AI が途中で止まらないのはなぜ？ → [issue-run.md](docs/guides/wor
 
 ## 使ってみる
 
-2 つのリポジトリを自分の PC に clone し、**自分のリポジトリで Claude Code を起動して、clone した場所を絶対パスで示して入れてもらいます。** clone したフォルダーは読むだけで、そこでは作業しません。
+使うリポジトリは 3 つです。**どれも Claude Code へのプロンプトで入れます。** 人が手でするのは、Claude Code を起動するフォルダーを選ぶことと、GitHub へのログイン、無人の回の起動だけです。
 
 | リポジトリ | 役目 | 要るか |
 |---|---|---|
 | [kaedeasset/issue-driven-kit](https://github.com/kaedeasset/issue-driven-kit)（ここ） | Issue を無人で回す仕組み | 要る |
 | [kaedeasset/document-authoring](https://github.com/kaedeasset/document-authoring) | 設計書・手順書の書き方と検査（`check.sh`）。キットの `design-cycle` が書き方をここに任せる | おすすめ |
+| [kaedeasset/commit-hooks](https://github.com/kaedeasset/commit-hooks) | コミットメッセージの形と載せない物を git のフックで止める。キットは利用先にフックを入れないので、無人の回のコミットを機械で止めるのはこれ | おすすめ |
 
-先に要る物：Node.js 22.14.0・GitHub CLI（`gh auth login` 済み）・Claude Code。入れ方は [導入ガイドの手順 1](shared/manuals/issue-driven-kit-install-guide.md#手順-1道具をそろえる)。
+document-authoring と commit-hooks は、それぞれ独立したリポジトリです。片方だけ入れてもかまいません。
 
-### 1. 2 つを自分の PC に clone する
-
-置く場所はどこでもかまいません。下の例は `D:\tools\`（Mac は `~/tools/`）に置いた場合です。
-
-```text
-cd D:\tools
-git clone https://github.com/kaedeasset/issue-driven-kit.git
-git clone https://github.com/kaedeasset/document-authoring.git
+```mermaid
+flowchart LR
+  A["道具の置き場で<br/>3 つを clone"] --> B["自分のリポジトリで<br/>claude を起動"]
+  B --> C["キットを入れる"] --> D["document-authoring<br/>を取り込む"] --> E["commit-hooks<br/>を取り込む"] --> F["push"] --> G["最初の Issue"]
 ```
 
-### 2. 自分のリポジトリで Claude Code に入れてもらう
+clone した 3 つは「道具の置き場」です。読むだけで、そこでは作業しません。自分のリポジトリの Claude Code に、置き場の絶対パスを示して「これを読んで、このリポジトリに入れて」と頼みます。
 
-自分のリポジトリのフォルダーで `claude` を起動し、上から順に入力します（まだリポジトリが無ければ、親のフォルダーで `GitHub に private のリポジトリ <名前> を作って、ここに clone して`）。パスは自分が clone した場所に読み替えます。
+下の例は、道具の置き場を `D:\tools`（Mac は `~/tools`）、自分のリポジトリを `D:\work\my-app` にした場合です。パスは自分の場所に読み替えます。
+
+### 1. 道具の置き場に 3 つを clone する
+
+`D:\tools` のフォルダーで `claude` を起動し、順に入力します。
+
+| 順 | 入力するプロンプト | 見るところ |
+|---|---|---|
+| 1 | `Git・GitHub CLI・Node.js 22.14.0 が入っているか確かめて、無い物を入れて。npm は 11.6.2 にして` | `node --version` が `v22.14.0`。Claude Code も要る（[導入ガイドの手順 1](shared/manuals/issue-driven-kit-install-guide.md#手順-1道具をそろえる)） |
+| 2 | `! gh auth login`（`!` で始めると、人がその場でログインする） | `gh auth status` に `Logged in to github.com` |
+| 3 | `kaedeasset の issue-driven-kit・document-authoring・commit-hooks の 3 つを、ここに clone して` | `D:\tools` の下に 3 つのフォルダーができる |
+
+無人の回を長く回すなら、Claude Code の**外の**ターミナルで `claude setup-token` を回し、出た値を自分で環境変数 `CLAUDE_CODE_OAUTH_TOKEN` に入れます（人がする。値は会話に貼らない。[導入ガイドの 1.3](shared/manuals/issue-driven-kit-install-guide.md#13-ログイン人がする)）。
+
+### 2. 自分のリポジトリで、3 つを入れてもらう
+
+自分のリポジトリのフォルダーで `claude` を起動し直します。まだリポジトリが無ければ、親のフォルダー（`D:\work`）で `GitHub に private のリポジトリ my-app を作って、ここに clone して` と入力してから、`D:\work\my-app` で起動し直します。PC にはあるが GitHub に無いリポジトリなら、最初に `自分の GitHub に private のリポジトリを作って、このフォルダーを origin にして` と入力します（4 の点検と 8 の push は GitHub の origin が要る）。そのあと上から順に入力します。
 
 | 順 | 入力するプロンプト | 見るところ |
 |---|---|---|
 | 1 | `D:\tools\issue-driven-kit\shared\manuals\issue-driven-kit-install-guide.md を読んで、このリポジトリに Node 版を入れて。まず --dry-run で、写すファイルと、ぶつかるファイルを見せて`（Unity のプロジェクトなら「Unity 版」） | 写すファイルの一覧。ぶつかるファイルがあれば、どうするか決める |
-| 2 | `入れて` | 最後の行が `Result: PASS (… 件を写した …)`。`CLAUDE.md` の「プロジェクト」「コマンド」が自分のリポジトリに合わせて書かれる |
-| 3 | `テストの入口を、全部・0 件・わざと落とすテストを 1 本足す、の 3 つで回して、最後の Result: 行と終了コードを見せて` | 全部は `Result: PASS`、0 件とわざと落とすは `Result: FAIL` |
+| 2 | `入れて。npm install まで回して、CLAUDE.md の <…> の所も全部このリポジトリに合わせて埋めて` | 最後の行が `Result: PASS (… 件を写した …)`。`CLAUDE.md` に `<…>` が残っていない |
+| 3 | `テストの入口を、全部・0 件・わざと落とすテストを 1 本足す、の 3 つで回して、最後の Result: 行と終了コードを見せて。わざと落とすテストは最後に消して` | 全部は `Result: PASS`、0 件とわざと落とすは `Result: FAIL` |
 | 4 | `issue-run の点検を回して` | 最後の行が `Result: PASS  WARN <数>`（NG が 0） |
-| 5 | `キットを入れた分をコミットして` | 作業ツリーが綺麗になる（6 の取り込みは綺麗でないと始まらない） |
-| 6 | `D:\tools\document-authoring\docs\install.md を読んで、そのとおりにこのリポジトリへ document-authoring を取り込んで。push はしないで` | `DOC-TEST PASS cases=<数>` と `DOC-CHECK … files=<数> errors=<数>`（既にある文書のエラーを直すかは自分で決める） |
-| 7 | `pushして` | GitHub に上がる。無人の回は GitHub の Issue を読むので、ここまで要る |
+| 5 | `キットを入れた分をコミットして` | 作業ツリーが綺麗になる（6・7 の取り込みは、綺麗でないと始まらない） |
+| 6 | `D:\tools\document-authoring\docs\install.md を読んで、そのとおりにこのリポジトリへ document-authoring を取り込んで。push はしないで` | `DOC-TEST PASS cases=<数>` と `DOC-CHECK … files=<数> errors=<数>`（既にある文書のエラーを直すかは自分で決める）。最後にコミットまでする |
+| 7 | `D:\tools\commit-hooks\docs\install.md を読んで、そのとおりにこのリポジトリへ commit-hooks を取り込んで。push はしないで` | `HOOKS-TEST PASS` と `HOOKS-INSTALL … verdict=PASS`。選んだ profile（Node 版なら `node`）。最後のコミットがフックを通る |
+| 8 | `pushして` | GitHub に上がる。無人の回は GitHub の Issue を読むので、ここまで要る |
+
+6 と 7 は、この順に 1 つずつ進めます。7 の後は、キットの `commit` スキルのメッセージの決まりが commit-hooks の `rules.md` を指す形に直ります。
 
 ### 3. 最初の Issue を回す
 
-最初は、合否を機械で測りやすい「文書を書かせる Issue」にします。
+同じ Claude Code で続けます。最初は、合否を機械で測りやすい「文書を書かせる Issue」にします。
 
 | 順 | 入力するプロンプト・すること |
 |---|---|
 | 1 | `<作りたい物の説明>。基本設計書にして、その後どこから Issue 駆動にするか検討して` → `おすすめで決めて` |
 | 2 | `詳細設計を書かせる Issue にして` → 下書きを読んで `コミットしてpushしてから作って` |
-| 3 | **別の窓で**、自分のリポジトリのフォルダーで `node scripts/issue-run/issue-run.mjs` を起動する → Claude Code に `issue-run を起動した` |
+| 3 | **別の窓で**、自分のリポジトリのフォルダーで `node scripts/issue-run/issue-run.mjs` を起動する（人がする）→ Claude Code に `issue-run を起動した` |
 | 4 | `様子見て` … `終わったみたい` → `コミットしてpushして` → `doneはcloseして` |
 
 多くの段で、次に入力するプロンプトが入力欄に灰色で出ます（Tab → Enter で送れる）。
 
-各手順の詳しい説明・困ったとき・キットを新しくするときは？ → [導入ガイド](shared/manuals/issue-driven-kit-install-guide.md)
+### 新しくするとき
+
+3 つは別々に新しくなります。自分のリポジトリの Claude Code で、`D:\tools の 3 つを git pull して、このリポジトリのキット・document-authoring・commit-hooks を新しくして。手を入れたファイルとの差を先に見せて` と入力します（キットは `--update`、ほかの 2 つは `git subtree pull`）。
+
+各手順の詳しい説明・困ったときは？ → [導入ガイド](shared/manuals/issue-driven-kit-install-guide.md)
 
 ## 中身
 
