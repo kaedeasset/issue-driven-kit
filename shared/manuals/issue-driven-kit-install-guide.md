@@ -332,6 +332,25 @@ pwsh -NoProfile -File Scripts/issue-run-doctor.ps1
 pwsh Scripts\issue-run.ps1 -DryRun
 ```
 
+### 5.3 文書の決まりを入れる（document-authoring・別のリポジトリ）
+
+設計書・手順書・記録の書き方のスキルは、キットに入っていません。独立したリポジトリ [kaedeasset/document-authoring](https://github.com/kaedeasset/document-authoring) を別に入れます（キットの `design-cycle` は「書き方は `document-authoring` スキル」と指すので、入れておくことを勧めます）。書き方の決まり・ひな形・検査（`check.sh`）が一緒に入り、Claude Code は書いた文書を検査に通してから出すようになります。
+
+document-authoring を自分の PC に clone してから（例 `D:\tools\document-authoring`・Mac は `~/tools/document-authoring`）、このリポジトリの Claude Code に入力します。
+
+```text
+D:\tools\document-authoring\docs\install.md を読んで、そのとおりにこのリポジトリへ document-authoring を取り込んで。
+取り込みは install.md の手順 2 のとおり GitHub から git subtree add で入れて（clone したフォルダーは読むだけ）。
+1 の調べた結果・既にある文書の check.sh の結果・各コマンドの最後の行を報告して。push はしないで。
+```
+
+| 見るところ | 合格の形 |
+|---|---|
+| 試験 | `DOC-TEST PASS cases=<数> os=<OS>` |
+| 既にある文書 | `DOC-CHECK … files=<数> errors=<数>`（直すかどうかは人が決める。キットが写した `docs/guides/` の文書は frontmatter が無いので D4 で落ちる。古い文書は直さず、新しい文書から決まりを守るのがおすすめ） |
+
+取り込みは作業ツリーが綺麗でないと始まりません（`fatal: working tree has modifications.  Cannot add.`）。手順 4〜5 で入ったファイルを先にコミットするか、手順 7 の後に回します。人向けの詳しい説明は document-authoring の [はじめての導入](https://github.com/kaedeasset/document-authoring/blob/main/docs/getting-started.md) にあります。
+
 ---
 
 ## 手順 6：最初の Issue を回す
@@ -399,6 +418,8 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 
 `.issue-kit/version` に、いま入っているキットの元のコミットとキットのリポジトリ（Node 版）が書いてあります。`dirty` が `true` のときは、入れたときのキットに未コミットの変更があり、写した中身が `commit` のコミットに入っていないかもしれません（入れる前のキットで測ります。キットの `.issue-kit/version` の差は、入れる脚本が書くファイルなので数えないことにしています）。点検は、キットの最新より古ければ `WARN キットの版: 古い。…` で知らせます。
 
+前のキットで入れた `.claude/skills/document-authoring/SKILL.md` は、`--update` では消えません（キットから外したため）。5.3 の取り込みの手順 1 が見つけて、消してから document-authoring を入れるかを聞きます。
+
 上げる版で設定や脚本の形が変わったときは、キットの移行ガイド（`shared/manuals/issue-driven-kit-migration-guide.md`）の手順で移します。古い形は読みません（例：テストの入口の設定は `.issue-kit/config.json` だけを読み、無ければ `Result: FAIL`）。
 
 ---
@@ -433,6 +454,7 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 | 4 | `入れて` |
 | 5 | `テストの入口を、全部・0 件・わざと落とすテストを 1 本足す、の 3 つで回して、最後の Result: 行と終了コードを見せて。わざと落とすテストは最後に消して` |
 | 5 | `issue-run の点検を回して`・`issue-run を DryRun で回して` |
+| 5.3 | `<document-authoring を clone した場所>\docs\install.md を読んで、そのとおりにこのリポジトリへ document-authoring を取り込んで。…push はしないで` |
 | 6 | `<作りたい物>…基本設計書にして、その後どこから Issue 駆動にするか検討して` → `おすすめで決めて` → `詳細設計を書かせる Issue にして` → `コミットしてpushしてから作って` → `issue-run を起動した` → `様子見て` → `終わったみたい` → `コミットしてpushして` → `doneはcloseして` |
 | 7 | `キットを入れた分をコミットしてpushして` |
 | 8 | `<キット> を git pull して、このリポジトリのキットを --update で新しくして。手を入れたファイルとの差を先に見せて` |
@@ -453,7 +475,7 @@ Unity 版は置き場が違います（ログは `Logs/IssueRun/`、まとめは
 ├─ vitest.config.ts                   （手順 4 で。要るとき）
 ├─ .gitignore                         .issue-run/ の 1 行を足す（無ければ作る）
 ├─ .claude/
-│  ├─ skills/                         github-issue・design-cycle・commit・push・pr・save-report・document-authoring・lane-sync・file-header（どれも SKILL.md）
+│  ├─ skills/                         github-issue・design-cycle・commit・push・pr・save-report・lane-sync・file-header（どれも SKILL.md）。document-authoring は 5.3 で別に入れる
 │  └─ issue-run/                      prompt.md・settings.json・stop-hook.mjs
 ├─ .github/ISSUE_TEMPLATE/claude-run.md
 ├─ .issue-kit/config.json             テストの入口の設定（どの道具で回すか。ひな形は vitest。手順 4 で自分の道具に直す。--update で上書きしない）

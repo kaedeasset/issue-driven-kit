@@ -276,7 +276,7 @@ test('無人の回（Node 版）: 前提の確かめは書き込みの権限の�
 const nodeFiles = [
   'CLAUDE.md', '.issue-kit/config.json',
   '.claude/issue-run/prompt.md', '.claude/issue-run/settings.json', '.claude/issue-run/stop-hook.mjs',
-  ...['commit', 'design-cycle', 'document-authoring', 'file-header', 'github-issue', 'lane-sync', 'pr', 'push', 'save-report']
+  ...['commit', 'design-cycle', 'file-header', 'github-issue', 'lane-sync', 'pr', 'push', 'save-report']
     .map((s) => `.claude/skills/${s}/SKILL.md`),
   '.github/ISSUE_TEMPLATE/claude-run.md',
   'scripts/test.mjs',

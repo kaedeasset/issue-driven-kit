@@ -26,7 +26,7 @@ if (process.platform === 'win32' && !hasPwsh) console.error('pwsh が無いの�
 const unityFiles = [
   'CLAUDE.md',
   '.claude/issue-run/prompt.md', '.claude/issue-run/settings.json', '.claude/issue-run/stop-hook.ps1',
-  ...['commit', 'design-cycle', 'document-authoring', 'file-header', 'github-issue', 'lane-sync', 'pr', 'push', 'save-report']
+  ...['commit', 'design-cycle', 'file-header', 'github-issue', 'lane-sync', 'pr', 'push', 'save-report']
     .map((s) => `.claude/skills/${s}/SKILL.md`),
   '.github/ISSUE_TEMPLATE/claude-run.md', '.gitattributes', '.gitignore',
   'Scripts/issue-run.ps1', 'Scripts/issue-run-doctor.ps1', 'Scripts/Sync-Lanes.ps1', 'Scripts/unity-test.ps1',

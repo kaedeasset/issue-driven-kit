@@ -62,7 +62,7 @@ pwsh Scripts\issue-run.ps1 -DryRun                           # Issue の無人�
 | **worktree のレーン**（レーンの一覧・所有するフォルダー・main の役割・レーンの作り方）・**朝の同期**（「レーン同期して」＝`/lane-sync`・`Scripts/Sync-Lanes.ps1`） | `Docs/Guides/Working/worktree-lanes.md` |
 | **生成 AI の CLI・MCP を足す・使う**（口はコマンドとファイル・無人の回で MCP を使わない・自作 MCP を作る条件） | `Docs/Guides/Decisions/genai-cli-mcp-policy.md` |
 | GitHub（リポジトリの作り方・push・弾かれたとき） | `Docs/Guides/Working/github-repo.md`・スキル `commit` `push` `pr` |
-| 文書を書く（設計書・手順書の形）・記録を残す | スキル `document-authoring`・`save-report` |
+| 文書を書く（設計書・手順書の形）・記録を残す | スキル `document-authoring`（キットとは別に入れる。kaedeasset/document-authoring）・`save-report` |
 | C# のファイルの頭書き | スキル `file-header` |
 
 ## 置き場

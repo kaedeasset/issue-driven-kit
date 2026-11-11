@@ -57,6 +57,7 @@ AI が途中で止まらないのはなぜ？ → [issue-run.md](docs/guides/wor
 | スキル `design-cycle` | ゴールから合格判定まで（設計・実装・テスト・NG の振り分け）を回す |
 | worktree のレーン | 作業を並べて動かし、朝に main へ同期する |
 | CLAUDE.md | 短く保ち、作業ごとの文書へ振り分ける |
+| [document-authoring](https://github.com/kaedeasset/document-authoring)（別のリポジトリ） | 設計書・手順書を決まった形で書き、検査（`check.sh`）を通してから出す。キットとは別に入れる（[導入ガイドの 5.3](shared/manuals/issue-driven-kit-install-guide.md#53-文書の決まりを入れるdocument-authoring別のリポジトリ)） |
 
 誰が何をして、1 件がどう流れる？ → [issue-driven-development.md](docs/guides/working/issue-driven-development.md)
 

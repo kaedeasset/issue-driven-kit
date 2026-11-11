@@ -33,7 +33,7 @@ flowchart TB
     subgraph CORE["芯（ほぼそのまま）"]
         A1["無人の Issue 実行<br/>issue-run.ps1・指示文・禁止の設定・Stop hook・ひな形"]
         A2["決まりの原則 5 つ<br/>CLAUDE.md の「原則」"]
-        A3["手順のスキル<br/>github-issue・design-cycle・commit・push・save-report・document-authoring"]
+        A3["手順のスキル<br/>github-issue・design-cycle・commit・push・save-report<br/>（文書は別の document-authoring）"]
         A4["文書の置き場の分け方<br/>Working・Procedures・Manuals・Decisions・Reading・Reports"]
     end
     subgraph TECH["技術の層（書き換える）"]
@@ -73,7 +73,7 @@ flowchart TB
 | `.github/ISSUE_TEMPLATE/claude-run.md` | 確認コマンドの例（テストの入口の名前）。「やらないこと」の例 | 欄の並び（やること・元の文書・合格の条件・確認コマンド・前提・先に決めておくこと・やらないこと） |
 | `.claude/skills/github-issue/SKILL.md` | 確認コマンドの例の 1 行 | 作る・見る・回すの手順、外への書き込みは言われてから |
 | `.claude/skills/design-cycle/SKILL.md` | テストのレベルの名前（Unity なら EditMode・PlayMode） | ゴール → 合格の条件 → 設計 → 実装 → テスト → 振り分け → 判定 |
-| `.claude/skills/push/SKILL.md`・`save-report/SKILL.md`・`document-authoring/SKILL.md` | プロジェクトの名前・置き場の表 | 手順 |
+| `.claude/skills/push/SKILL.md`・`save-report/SKILL.md` | プロジェクトの名前・置き場の表 | 手順 |
 | `CLAUDE.md` の「原則」 | なし（付録 A の 5 つをそのまま） | 全部 |
 | `Docs/Guides/README.md`（置き場の分け方） | なし | 分け方（付録 A の「置き場」） |
 
@@ -246,7 +246,7 @@ pwsh Scripts\issue-run.ps1 -DryRun を回して
 ## 6. 入れ終わったかの点検表
 
 - [ ] `CLAUDE.md` に、付録 A の「原則」5 つと「守るもの」（技術ごと）と「入口」「置き場」がある
-- [ ] `.claude/skills/` に `github-issue`・`design-cycle`・`commit`・`push`・`save-report`・`document-authoring` がある
+- [ ] `.claude/skills/` に `github-issue`・`design-cycle`・`commit`・`push`・`save-report` がある（文書の決まりも使うなら、別の `document-authoring` も）
 - [ ] `.claude/issue-run/` に `prompt.md`・`settings.json`・`stop-hook.ps1` がある
 - [ ] `.github/ISSUE_TEMPLATE/claude-run.md` がある
 - [ ] テストの入口が、全部・0 件・落ちるの 3 つで期待どおりの `Result:` 行と終了コードを返す

@@ -62,7 +62,7 @@ node scripts/issue-run/issue-run.mjs --dry-run     # 対象の Issue を見る�
 | **worktree のレーン**（レーンの一覧・所有するフォルダー・main の役割・レーンの作り方）・**朝の同期**（「レーン同期して」＝`/lane-sync`・`scripts/issue-run/sync-lanes.mjs`） | `docs/guides/working/worktree-lanes.md` |
 | **生成 AI の CLI・MCP を足す・使う**（口はコマンドとファイル・無人の回で MCP を使わない・自作 MCP を作る条件） | `docs/guides/decisions/genai-cli-mcp-policy.md` |
 | GitHub（リポジトリの作り方・push・弾かれたとき） | `docs/guides/working/github-repo.md`・スキル `commit` `push` `pr` |
-| 文書を書く（設計書・手順書の形）・記録を残す | スキル `document-authoring`・`save-report` |
+| 文書を書く（設計書・手順書の形）・記録を残す | スキル `document-authoring`（キットとは別に入れる。kaedeasset/document-authoring）・`save-report` |
 | TypeScript・JavaScript のファイルの頭書き | スキル `file-header` |
 
 ## 置き場

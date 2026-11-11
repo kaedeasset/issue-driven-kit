@@ -119,7 +119,8 @@ Claude Code は、返答が終わると、入力欄に**次に入力しそうな
 | `.claude/skills/github-issue/` | 「Issueにして」「作って」「様子見て」「出し直して」「doneはcloseして」の意味 |
 | `.claude/skills/design-cycle/` | ゴール → 合格の条件 → 設計 → 実装 → テスト → 判定の回し方 |
 | `.claude/skills/commit/`・`push/` | 「コミットして」「pushして」の意味 |
-| `.claude/skills/document-authoring/`・`save-report/` | 文書・記録の書き方と置き場 |
+| `.claude/skills/save-report/` | 記録の書き方と置き場 |
+| `.claude/skills/document-authoring/`（キットとは別に入れる。kaedeasset/document-authoring） | 文書の書き方・ひな形・検査（`check.sh`） |
 | `Scripts/issue-run.ps1`・`.claude/issue-run/` | 無人の回の本体・指示文・止まらない仕組み（Stop hook）・禁止の設定 |
 | `.github/ISSUE_TEMPLATE/claude-run.md` | Issue のひな形 |
 | テストの入口（このリポジトリでは `Scripts/unity-test.ps1`） | 確認コマンドが呼ぶ。自社では `npm test` や `pytest` を呼ぶ脚本に替える |
