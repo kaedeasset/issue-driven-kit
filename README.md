@@ -102,6 +102,28 @@ AI にコミットを任せると、次のことが起きます。指示文や C
 
 ## 使ってみる
 
+### Claude Code に入れてもらう（おすすめ）
+
+1. このリポジトリを、**自分のリポジトリの外**に clone します。
+
+   ```sh
+   git clone https://github.com/kaedeasset/commit-hooks.git D:\tools\commit-hooks   # Mac なら ~/tools/commit-hooks
+   ```
+
+2. **自分のリポジトリ**で Claude Code を開き（`cd <自分のリポジトリ>` → `claude`）、clone した場所の絶対パスを示して頼みます。
+
+   ```text
+   D:\tools\commit-hooks\docs\install.md を読んで、そのとおりにこのリポジトリへ commit-hooks を取り込んで。
+   取り込みは install.md の手順 2 のとおり GitHub から git subtree add で入れて（clone したフォルダーは読むだけ）。
+   1 の調べた結果・選んだ profile・各コマンドの最後の行を報告して。push はしないで。
+   ```
+
+3. 報告に `HOOKS-TEST PASS`・`verdict=PASS` があれば入っています。あとは「コミットして」と頼むだけです。
+
+clone した後に何をする？ 途中で何を聞かれる？ 入れた後の毎日の使い方は？ → [はじめての導入](docs/getting-started.md)
+
+### 手で入れる
+
 取り込み先のリポジトリのルートで:
 
 ```sh
@@ -109,13 +131,6 @@ git subtree add --prefix=Tools/commit-hooks https://github.com/kaedeasset/commit
 sh Tools/commit-hooks/test.sh            # → HOOKS-TEST PASS cases=63 os=<OS>
 sh Tools/commit-hooks/install.sh node    # → HOOKS-INSTALL ... verdict=PASS（profile は上の表から）
 git commit --allow-empty -m "fix: 試し"   # → M4・M5 で止まれば効いている
-```
-
-Claude Code に頼むなら、このプロンプトで導入できます。
-
-```text
-https://github.com/kaedeasset/commit-hooks の docs/install.md のとおりに、このリポジトリへ commit-hooks を取り込んで。
-1 の調べた結果・選んだ profile・各コマンドの最後の行を報告して。push はしないで。
 ```
 
 husky・lefthook を使っている repo、既にフックがある repo、worktree を使っている repo の分かれ道は → [導入ガイド](docs/install.md)
@@ -133,7 +148,8 @@ husky・lefthook を使っている repo、既にフックがある repo、workt
 | `install.sh` | `.git/hooks/` に中継を書き、`commit-hooks.conf` が無ければ作る（2 回目は何も変えない） |
 | `test.sh` | 使い捨ての repo で 63 の場合を回す |
 | [`skill/SKILL.md`](skill/SKILL.md) | Claude Code のコミットスキルのひな形 |
-| [`docs/install.md`](docs/install.md) | 導入ガイド（分かれ道・hooksPath・改行・戻し方） |
+| [`docs/getting-started.md`](docs/getting-started.md) | はじめての導入（人が読む。clone から最初のコミット・毎日の使い方・うまくいかないとき） |
+| [`docs/install.md`](docs/install.md) | 導入ガイド（Claude Code が読んで進める。分かれ道・hooksPath・改行・戻し方） |
 | [`docs/operations.md`](docs/operations.md) | 運用マニュアル（どこを直すか・フレームワークと OS の違い・送り返し方・受け取り方・踏んだもの） |
 
 ## 作者・ライセンス
