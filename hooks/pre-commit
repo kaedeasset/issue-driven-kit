@@ -1,0 +1,167 @@
+#!/bin/sh
+# pre-commit — ステージした中身を検査する。決まりの正は commit-hooks の rules.md。
+# 中継の .git/hooks/pre-commit（install.sh が書く）から呼ばれる。値は 3 段の設定（hooks/conf.sh）から読む。
+#   P1 今回足すファイルが .gitignore に当たる（git add -f で無理に足したもの）
+#   P2 秘密らしいファイル名（.env・.env.*・credentials.*・*.pem・*.key・.claude/settings.local.json と secret_extra）を足す・変える
+#   P3 1 ファイルが size_fail_mib を超える（GitHub は 100MiB で push を拒む）。size_warn_mib を超えたら警告だけ
+#   P4 生成物のパス（generated。フレームワーク別）を足す・変える
+#   P5 Unity の .meta の対応（meta_pair=yes のとき）。足したアセットとその上のフォルダに .meta が無い・.meta だけを足す・アセットを消して .meta が残る
+#   P6 1 アクタ 1 ファイルのマップ（ofpa_check=yes のとき）で、同じマップのファイルがステージされずに残る（警告だけ）
+#   P7 LFS の対象なのに中身がポインタでない（lfs_check=yes のとき）
+# 外れたら PRE-COMMIT FAIL <P…> <パス> を出して 1 で終わる。警告は PRE-COMMIT WARN P3 <パス> <MiB>。
+# git commit --only のときは git が用意した一時インデックス（GIT_INDEX_FILE）を見る（環境変数をそのまま使う）。
+
+. "$(dirname "$0")/conf.sh"
+extra=$(conf secret_extra) || exit 1
+failmib=$(conf size_fail_mib) || exit 1
+warnmib=$(conf size_warn_mib) || exit 1
+generated=$(conf generated) || exit 1
+generated_os=$(conf generated_os) || exit 1
+metapair=$(conf meta_pair) || exit 1
+ofpa=$(conf ofpa_check) || exit 1
+lfscheck=$(conf lfs_check) || exit 1
+
+fail=0
+staged() { git -c core.quotepath=off diff --cached --name-only --diff-filter="$1"; }
+
+# P1: 足すファイルのうち ignore に当たるもの
+p1=$(git diff --cached --name-only --diff-filter=A -z | git check-ignore --no-index --stdin -z | tr '\0' '\n')
+if [ -n "$p1" ]; then
+    echo "$p1" | while IFS= read -r f; do echo "PRE-COMMIT FAIL P1 $f（.gitignore に当たる。生成物・購入物・焼いた物は載せない）" >&2; done
+    fail=1
+fi
+
+# P2: 秘密らしいファイル名（足す・変える）
+# 正規表現は環境変数で渡す（awk -v は \. などのエスケープを先に消す）
+p2=$(staged ACMR | CH_EXTRA="$extra" awk '
+BEGIN { extra = ENVIRON["CH_EXTRA"] }
+{ n = split($0, a, "/"); b = a[n] }
+b == ".env" || b ~ /^\.env\./ || b ~ /^credentials\./ || b ~ /\.pem$/ || b ~ /\.key$/ || $0 == ".claude/settings.local.json" || (extra != "" && b ~ extra) { print }')
+if [ -n "$p2" ]; then
+    echo "$p2" | while IFS= read -r f; do echo "PRE-COMMIT FAIL P2 $f（秘密らしいファイル名。載せない）" >&2; done
+    fail=1
+fi
+
+# P3: ステージした中身の大きさ（blob の大きさ）
+# %(rest) は入力の 1 つ目の空白より後（パス）をそのまま返す。git を 1 回だけ起こす（ファイルごとに起こすと大きいコミットで遅い）
+tab=$(printf '\t')
+p3=$(git -c core.quotepath=off diff --cached --raw --no-abbrev --diff-filter=ACMR | awk -F'\t' '{ split($1, m, " "); print m[4] " " $NF }' |
+    git cat-file --batch-check="%(objectsize)$tab%(rest)" | awk -F'\t' -v f="$failmib" -v w="$warnmib" '
+    $1 > f * 1048576 { printf "FAIL\t%s\t%.1f\n", $2, $1 / 1048576; next }
+    $1 > w * 1048576 { printf "WARN\t%s\t%.1f\n", $2, $1 / 1048576 }')
+if [ -n "$p3" ]; then
+    printf '%s\n' "$p3" | while IFS="$tab" read -r kind path mib; do
+        if [ "$kind" = FAIL ]; then
+            echo "PRE-COMMIT FAIL P3 $path ${mib}MiB（${failmib}MiB を超える。GitHub は 100MiB で push を拒む）" >&2
+        else
+            echo "PRE-COMMIT WARN P3 $path ${mib}MiB（${warnmib}MiB を超える）" >&2
+        fi
+    done
+    case "$p3" in FAIL*|*"
+FAIL"*) fail=1 ;; esac
+fi
+
+# P4: 生成物のパス（足す・変える）。OS が作るファイル（generated_os）はフレームワークによらず止める
+if [ -n "$generated_os" ]; then
+    if [ -n "$generated" ]; then generated="$generated|$generated_os"; else generated="$generated_os"; fi
+fi
+if [ -n "$generated" ]; then
+    p4=$(staged ACMR | grep -E -e "$generated")
+    if [ -n "$p4" ]; then
+        echo "$p4" | while IFS= read -r f; do echo "PRE-COMMIT FAIL P4 $f（生成物のフォルダ。.gitignore に足して、ステージから外す）" >&2; done
+        fail=1
+    fi
+fi
+
+# P5: Unity の .meta の対応。Assets/ の下で、. で始まる名前・~ で終わる名前は Unity が読まない（.meta が要らない）
+if [ "$metapair" = yes ]; then
+    p5=$( { staged A | awk '{ print "A	" $0 }'; staged D | awk '{ print "D	" $0 }'; git -c core.quotepath=off ls-files | awk '{ print "I	" $0 }'; } | awk -F'	' '
+    function skip(p,   n, a, i, inA) {
+        n = split(p, a, "/"); inA = 0
+        for (i = 1; i <= n; i++) {
+            if (inA && (a[i] ~ /^\./ || a[i] ~ /~$/)) return 1
+            if (a[i] == "Assets") inA = i
+        }
+        return inA == 0 || inA == n
+    }
+    $1 == "I" { idx[$2] = 1; n = split($2, a, "/"); d = a[1]; for (i = 2; i < n; i++) { dir[d] = 1; d = d "/" a[i] } if (n > 1) dir[d] = 1; next }
+    $1 == "A" { add[++na] = $2; next }
+    $1 == "D" { del[++nd] = $2; next }
+    END {
+        for (j = 1; j <= na; j++) {
+            p = add[j]
+            if (skip(p)) continue
+            if (p ~ /\.meta$/) {
+                o = substr(p, 1, length(p) - 5)
+                if (!(o in idx) && !(o in dir)) print "META-ONLY\t" p
+                continue
+            }
+            if (!((p ".meta") in idx)) print "NO-META\t" p
+            # 上のフォルダ（Assets の下だけ）
+            n = split(p, a, "/"); d = ""; inA = 0
+            for (i = 1; i < n; i++) {
+                d = (d == "" ? a[i] : d "/" a[i])
+                if (inA && !((d ".meta") in idx) && !seen[d]++) print "NO-META\t" d "/"
+                if (a[i] == "Assets") inA = 1
+            }
+        }
+        for (j = 1; j <= nd; j++) {
+            p = del[j]
+            if (p ~ /\.meta$/ || skip(p)) continue
+            if ((p ".meta") in idx) print "META-LEFT\t" p ".meta"
+        }
+    }')
+    if [ -n "$p5" ]; then
+        printf '%s\n' "$p5" | while IFS="$tab" read -r kind path; do
+            case "$kind" in
+                NO-META) echo "PRE-COMMIT FAIL P5 $path（.meta が無い。Unity のエディタで開いて作られた .meta も足す）" >&2 ;;
+                META-ONLY) echo "PRE-COMMIT FAIL P5 $path（対応するアセットが無い .meta）" >&2 ;;
+                META-LEFT) echo "PRE-COMMIT FAIL P5 $path（アセットを消したのに .meta が残る。一緒に消す）" >&2 ;;
+            esac
+        done
+        fail=1
+    fi
+fi
+
+
+# P6: 1 アクタ 1 ファイルのマップの載せ漏れ（警告だけ）。ステージしたマップ（.umap か __ExternalActors__・__ExternalObjects__ の下）ごとに、
+# 同じマップのファイルで作業ツリーに変更が残っている・未追跡のものを数える。マップの名前は .umap が実際にある接頭辞で決める
+if [ "$ofpa" = yes ]; then
+    staged ACMRD | awk '
+    /\.umap$/ { i = index($0, "Content/"); if (i) { r = substr($0, 1, i + 7); m = substr($0, i + 8); sub(/\.umap$/, "", m); print "M\t" r "\t" m } next }
+    match($0, /(^|\/)Content\/__External(Actors|Objects)__\//) {
+        pre = substr($0, 1, RSTART + RLENGTH - 1); rest = substr($0, RSTART + RLENGTH)
+        r = pre; sub(/__External(Actors|Objects)__\/$/, "", r)
+        n = split(rest, a, "/"); c = ""
+        for (i = 1; i < n; i++) { c = (c == "" ? a[i] : c "/" a[i]); print "E\t" r "\t" c }
+    }' | while IFS="$tab" read -r kind root map; do
+        if [ "$kind" = M ] || [ -f "$root$map.umap" ]; then printf '%s\t%s\n' "$root" "$map"; fi
+    done | sort -u | while IFS="$tab" read -r root map; do
+        left=$(git -c core.quotepath=off status --porcelain=v1 -uall -- "${root}__ExternalActors__/$map/" "${root}__ExternalObjects__/$map/" "$root$map.umap" | awk '/^\?\?/ || substr($0, 2, 1) != " " { print substr($0, 4) }')
+        if [ -n "$left" ]; then
+            cnt=$(printf '%s\n' "$left" | wc -l | tr -d ' ')
+            echo "PRE-COMMIT WARN P6 $root$map.umap（同じマップのファイルが $cnt 本、ステージされずに残っている。マップを開くと読めなくなることがある）" >&2
+            printf '%s\n' "$left" | head -3 | sed 's/^/    /' >&2
+        fi
+    done
+fi
+
+# P7: LFS の対象（.gitattributes の filter=lfs）なのに、中身がポインタでなくそのまま入る（git lfs install を回していない PC で起きる）
+# ポインタは 200 バイトほど。1KiB を超えたらそのまま入っていると見る
+if [ "$lfscheck" = yes ]; then
+    p7=$(git -c core.quotepath=off diff --cached --raw --no-abbrev --diff-filter=ACMR | awk -F'\t' '{ split($1, m, " "); print m[4] " " $NF }' > "${TMPDIR:-/tmp}/ch-p7.$$"
+        awk '{ print substr($0, index($0, " ") + 1) }' "${TMPDIR:-/tmp}/ch-p7.$$" | git check-attr --cached --stdin filter | awk '/: filter: lfs$/ { sub(/: filter: lfs$/, ""); print }' > "${TMPDIR:-/tmp}/ch-p7l.$$"
+        if [ -s "${TMPDIR:-/tmp}/ch-p7l.$$" ]; then
+            awk 'NR == FNR { lfs[$0] = 1; next } (substr($0, index($0, " ") + 1) in lfs) { print }' "${TMPDIR:-/tmp}/ch-p7l.$$" "${TMPDIR:-/tmp}/ch-p7.$$" |
+                git cat-file --batch-check="%(objectsize)$tab%(rest)" | awk -F'\t' '$1 > 1024 { print $2 }'
+        fi
+        rm -f "${TMPDIR:-/tmp}/ch-p7.$$" "${TMPDIR:-/tmp}/ch-p7l.$$")
+    if [ -n "$p7" ]; then
+        echo "$p7" | while IFS= read -r f; do echo "PRE-COMMIT FAIL P7 $f（LFS の対象なのに中身がそのまま。git lfs install を回してから git add し直す）" >&2; done
+        fail=1
+    fi
+fi
+
+[ "$fail" = 0 ] && exit 0
+echo "--no-verify は使わない。ステージから外す（git restore --staged <パス>）か、中身を直してコミットし直す。" >&2
+exit 1
