@@ -19,7 +19,7 @@ GitHub Issue にラベルを付けておくと、`scripts/issue-run/issue-run.mj
 | Claude が区切りで返答を終える（`-p` はそこで終わる） | **Stop hook**（`.claude/issue-run/stop-hook.mjs`）。報告ファイルが「## 結果: 合格」・判定に使うファイルが開始時のまま、の2つがそろうまで返答を終えさせない（押し返しは合計30回）。終わったら、スクリプトが確認コマンドを **1 回だけ**回し、落ちていれば出力を付けて同じ会話を `--resume` で再開する（最大 `--max-rounds` 回） |
 | 確認の画面が出る | CLI の `--permission-prompts none`。確認は出ずに断られ、エラーが Claude に返るだけ |
 | 質問する | `--disallowed-tools AskUserQuestion` と deny |
-| 承認の要る操作（削除・プロセス停止・push・Issue への書き込み・直下の CLAUDE.md と `.claude/` の書き換え・履歴の書き換え・デプロイ） | 設定の **deny** で必ず断る。指示文にも代わりのやり方を書いてある。CLAUDE.md と `.claude/` の deny は `Edit(//{{REPO}}/CLAUDE.md)` の**絶対パス**で書き、スクリプトが `{{REPO}}` を作業場所の POSIX 形（Windows の `C:\work\app` は `c/work/app`、Mac の `/Users/me/app` は `Users/me/app`）に置き換える。裸の `CLAUDE.md`・`.claude/**` は**どの深さにも**効き、作る物の中の CLAUDE.md やスキルまで断る（元のリポジトリで 5 回落ちた） |
+| 承認の要る操作（削除・プロセス停止・push・Issue への書き込み・直下の CLAUDE.md と `.claude/` の書き換え・履歴の書き換え・デプロイ） | 設定の **deny** で必ず断る。指示文にも代わりのやり方を書いてある。CLAUDE.md と `.claude/` の deny は `Edit(//{{REPO}}/CLAUDE.md)` の**絶対パス**で書き、スクリプトが `{{REPO}}` を作業場所の POSIX 形（Windows の `C:\work\app` は `c/work/app`、Mac の `/Users/<you>/app` は `Users/<you>/app`）に置き換える。裸の `CLAUDE.md`・`.claude/**` は**どの深さにも**効き、作る物の中の CLAUDE.md やスキルまで断る（元のリポジトリで 5 回落ちた） |
 | コマンドが10分で時間切れ | 設定の env `BASH_MAX_TIMEOUT_MS`（90分） |
 | 実行中に Claude Code が更新される | 設定の env `DISABLE_AUTOUPDATER` |
 | 認証切れ・利用上限 | 起動前の点検で止める・上限は待ってやり直す |
