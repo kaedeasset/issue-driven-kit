@@ -18,7 +18,7 @@
    | A が空 | このまま進む |
    | A に値がある（husky・lefthook など） | 下の「hooksPath を使う repo」 |
    | B に `commit-msg` か `pre-commit` がある | `install.sh` は上書きせず FAIL で止まる。中身を読み、残すものならユーザーに確かめる |
-   | C に `feat` 〜 `test` 以外の種類が多い | 5 で `commit-hooks.conf` の `types=` に足す |
+   | C に `feat` 〜 `test` 以外の種類が多い（`Merge `・`Squashed `・最初のコミットは数えない） | 5 で `commit-hooks.conf` の `types=` に足す |
    | D | profile を決める: `.uproject` → `unreal`・`Assets/` と `ProjectSettings/` → `unity`・`package.json` → `node`・どれも無い → `plain`。Unity のプロジェクトが repo の 1 段下にあれば、5 で `generated=` を上書きする（`profiles/unity/profile.conf` の注） |
 
 2. 取り込む（取り込み先の作業ツリーが綺麗な状態で）
@@ -30,9 +30,9 @@
 3. 試す・入れる
 
    ```sh
-   sh Tools/commit-hooks/test.sh               # → HOOKS-TEST PASS cases=63 os=<OS>
-   sh Tools/commit-hooks/install.sh unreal     # → HOOKS-INSTALL conf=created commit-msg=installed pre-commit=installed others=… verdict=PASS
-   sh Tools/commit-hooks/install.sh unreal     # 2 回目 → conf=exists … unchanged
+   sh Tools/commit-hooks/test.sh               # → HOOKS-TEST PASS cases=<数> os=<OS>
+   sh Tools/commit-hooks/install.sh <profile>  # 1 の D で決めた物（node・unity・unreal・plain）→ HOOKS-INSTALL conf=created commit-msg=installed pre-commit=installed others=… verdict=PASS
+   sh Tools/commit-hooks/install.sh <profile>  # 2 回目 → conf=exists … unchanged
    ```
 
    `others=` に、1 の B で見たフック（Git LFS の `post-checkout` など）が残っていること。
