@@ -1,0 +1,13 @@
+# document-authoring.conf — この repo だけの違い。repo の直下に置く（無ければ既定で動く）。
+# 書き方: 名前=値。# の行と空行は読まない。名前と既定は rules.md の「値」。
+
+# ファイルを渡さないときに調べる所（空白で区切る）
+check_paths=docs README.md
+# frontmatter が要る所（空なら要らない）
+frontmatter_paths=docs
+# frontmatter に要る名前。AI だけが書く repo なら generated_by を足す
+frontmatter_keys=date type project
+# type: に書ける種類（| で区切る）
+types=spec|design|architecture|guide|reference|report
+# 警告するあいまいな言葉（正規表現 ERE。空なら警告しない）
+vague_words=適切に|適宜|必要に応じて|十分な|よしなに|いい感じに
