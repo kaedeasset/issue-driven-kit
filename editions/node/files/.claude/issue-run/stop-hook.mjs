@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // stop-hook.mjs — issue-run.mjs の Claude が返答を終えようとしたときに呼ばれる（Stop hook・Node 版）。仕様の正: キットの shared/spec/issue-run-spec.md 4 章。
 // 合格していなければ {"decision":"block"} を返して、同じプロセスのまま作業を続けさせる。
-// 見るのは、報告ファイルが「## 結果: 合格」・守るファイルが開始時のまま、の 2 つだけ。確認コマンドは回さない（issue-run.mjs が回の後に 1 回だけ回す）。
+// 見るのは、報告ファイルが「## 結果: 合格」・守るファイルが開始時のまま、の 2 つだけ（報告が判定不能なら押し返さない）。確認コマンドは回さない（issue-run.mjs が回の後に 1 回だけ回す）。
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { reportClaimsPass, changedProtected } from '../../scripts/issue-run/lib.mjs';
+import { reportClaimsPass, reportUndecidable, changedProtected } from '../../scripts/issue-run/lib.mjs';
 
 try { readFileSync(0); } catch { /* hook の入力（使わないが読み切る） */ }
 const env = process.env;
@@ -21,6 +21,8 @@ function notPassReason() {
   return '';
 }
 
+// 判定不能（合格の条件が両立しない）と決まった形で書いたら、押し返さず回数も数えない（仕様 4 章。人が Issue の条件か守るファイルを直す）
+if (existsSync(env.ISSUE_RUN_REPORT) && reportUndecidable(readFileSync(env.ISSUE_RUN_REPORT, 'utf8'))) process.exit(0);
 const why = notPassReason();
 if (!why) process.exit(0);
 let count = 0;

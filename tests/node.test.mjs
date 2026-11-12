@@ -150,6 +150,26 @@ test('報告の「合格」の行', () => {
   assert.ok(!lib.reportClaimsPass('## 結果: 未合格'));
 });
 
+test('報告の「判定不能」の行: 結果の行と両立しない条件の節がそろったときだけ読む', () => {
+  const table = '| 合格の条件 | 判定 | 根拠 |\n|---|---|---|\n| a | NG | b |\n';
+  const full = `## 結果: 判定不能\n${table}\n## 両立しない条件\n- 条件 A と守るファイル X がぶつかる\n- 直し方の推し: X を直す\n\n## やったこと\n- 何か\n`;
+  assert.equal(lib.reportUndecidable(full), '- 条件 A と守るファイル X がぶつかる\n- 直し方の推し: X を直す');
+  assert.equal(lib.reportUndecidable(full.replace(/\n/g, '\r\n')), '- 条件 A と守るファイル X がぶつかる\n- 直し方の推し: X を直す');
+  assert.equal(lib.reportUndecidable(`  ## 結果: 判定不能  \n## 両立しない条件\nぶつかる`), 'ぶつかる', '行の前後の空白・節が終わりまで');
+  assert.equal(lib.reportUndecidable(`## 結果: 判定不能\n${table}\n## やったこと\n- 何か\n`), '', '節が無い');
+  assert.equal(lib.reportUndecidable(`## 結果: 判定不能\n## 両立しない条件\n  \n\n## やったこと\n- 何か\n`), '', '節が空');
+  assert.equal(lib.reportUndecidable(`## 結果: 未合格\n## 両立しない条件\n- ぶつかる\n`), '', '結果が未合格');
+  assert.equal(lib.reportUndecidable(`## 結果: 合格\n## 両立しない条件\n- ぶつかる\n`), '', '結果が合格');
+  assert.equal(lib.reportUndecidable(`## 結果: 判定不能です\n## 両立しない条件\n- ぶつかる\n`), '', '結果の行が違う');
+  assert.equal(lib.reportUndecidable(''), '');
+  assert.equal(lib.reportUndecidable(undefined), '');
+  assert.equal(lib.reportClaimsPass(full), false, '判定不能を合格と読まない');
+  // 脚本が使う
+  const script = read(join(nodeRoot, 'files/scripts/issue-run/issue-run.mjs'));
+  assert.match(script, /L\.reportUndecidable\(/);
+  assert.match(script, /報告が判定不能（合格の条件が両立しない）。人が Issue の条件か守るファイルを直す。/);
+});
+
 test('まとめ（Node 版）: 作業場所の絶対パスを書かない', () => {
   const base = { runStamp: '20261024-0859', repo: 'o/app', logDir: '.issue-run/logs/20261024-0859/', aborted: '', results: [] };
   for (const root of ['/Users/someone-mac/work/app', 'C:\\Users\\someone-win\\work\\app', '/Users/someone-mac/work/app/']) {
@@ -453,6 +473,47 @@ test('Stop hook（Node 版）: 押し返す・終わらせる・守るファイ�
     node([hook], { env: { ...process.env, ISSUE_RUN_PROBE: mark }, input: '{}' });
     assert.ok(existsSync(mark));
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('Stop hook（Node 版）: 判定不能の報告なら押し返さずに終わらせる', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'kit-hook-'));
+  try {
+    const hook = join(nodeRoot, 'files/.claude/issue-run/stop-hook.mjs');
+    const report = join(dir, 'report.md'), protect = join(dir, 'protect.tsv'), state = join(dir, 'state.txt');
+    mkdirSync(join(dir, 'test'), { recursive: true });
+    writeFileSync(join(dir, 'test/a.test.ts'), 'x');
+    writeFileSync(protect, lib.snapshotLines(dir, ['test/a.test.ts']).join('\n') + '\n');
+    const env = { ...process.env, ISSUE_RUN_ROOT: dir, ISSUE_RUN_REPORT: report, ISSUE_RUN_PROTECT: protect, ISSUE_RUN_STATE: state, ISSUE_RUN_MAXBLOCKS: '30' };
+    const run = () => node([hook], { env, input: '{}' });
+    // 判定不能の形（守るファイルが変わっていても）→ 押し返さず、回数も数えない
+    writeFileSync(report, '## 結果: 判定不能\r\n| a | NG | b |\r\n\r\n## 両立しない条件\r\n- 条件 A と守るファイル X がぶつかる\r\n');
+    writeFileSync(join(dir, 'test/a.test.ts'), 'changed');
+    let r = run();
+    assert.equal(r.stdout, '');
+    assert.ok(!existsSync(state), '押し返しを数えた');
+    // 節が空なら判定不能でない → 押し返す
+    writeFileSync(report, '## 結果: 判定不能\n\n## 両立しない条件\n\n## やったこと\n- 何か\n');
+    r = run();
+    assert.equal(JSON.parse(r.stdout).decision, 'block');
+    assert.match(JSON.parse(r.stdout).reason, /1\/30 回目の押し返し/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('仕様に判定不能の決まりがある', () => {
+  const spec = read(join(kit, 'shared/spec/issue-run-spec.md'));
+  const chapter = (n, m) => spec.split(new RegExp(`^## ${n}\\. `, 'm'))[1].split(new RegExp(`^## ${m}\\. `, 'm'))[0];
+  const ch3 = chapter(3, 4), ch4 = chapter(4, 5), ch9 = chapter(9, 10);
+  for (const w of ['## 結果: 判定不能', '## 両立しない条件', 'NOT-PASS', 'claude-failed', '確認コマンドを回さず', '次の回へ進まない']) assert.ok(ch3.includes(w), `3 章: ${w}`);
+  assert.ok(ch4.includes('## 結果: 判定不能') && ch4.includes('押し返さず'), '4 章');
+  const row = ch9.split('\n').find((l) => /^\| 判定不能/.test(l));
+  assert.ok(row, '9 章の行');
+  assert.equal(row.split('|').length - 2, 3, row);
+  assert.match(row, /まだ/);
+  assert.match(row, /実装している/);
+  // 版のひな形と文書
+  const prompt = read(join(nodeRoot, 'files/.claude/issue-run/prompt.md'));
+  for (const w of ['## 結果: 合格', '## 結果: 判定不能', '## 両立しない条件']) assert.ok(prompt.includes(w), `prompt.md: ${w}`);
+  assert.ok(read(join(nodeRoot, 'files/docs/guides/working/issue-run.md')).includes('判定不能'));
 });
 
 // テストの入口を回す小さな作業場所を作る（scripts/test.mjs と、それが読み込む lib.mjs・proc.mjs を写す）。config が null なら設定を置かない

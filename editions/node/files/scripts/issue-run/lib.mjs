@@ -152,6 +152,18 @@ export function reportClaimsPass(text) {
   return /^##\s*結果:\s*合格\s*$/mu.test(String(text ?? '').replace(/\r/g, ''));
 }
 
+// 報告が「判定不能」（合格の条件どうし、または条件と守るファイルが両立しない）か。仕様 3 章。
+// 行「## 結果: 判定不能」と、中身のある節「## 両立しない条件」がそろえば節の中身（前後の空白を取る）を返す。そろわなければ ''。
+export function reportUndecidable(text) {
+  const t = String(text ?? '').replace(/\r/g, '');
+  if (!/^[ \t]*##[ \t]*結果:[ \t]*判定不能[ \t]*$/mu.test(t)) return '';
+  const m = /^[ \t]*##[ \t]*両立しない条件[ \t]*$/mu.exec(t);
+  if (!m) return '';
+  const rest = t.slice(m.index + m[0].length);
+  const next = rest.search(/^## /mu);
+  return (next < 0 ? rest : rest.slice(0, next)).trim();
+}
+
 const pad = (n) => String(n).padStart(2, '0');
 export const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 export const hm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;

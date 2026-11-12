@@ -325,7 +325,7 @@ try {
     writeFileSync(protectFile, L.snapshotLines(ROOT, prot).join('\n') + (prot.length ? '\n' : ''), 'utf8');
     const env = { ISSUE_RUN_REPORT: reportPath, ISSUE_RUN_PROTECT: protectFile, ISSUE_RUN_STATE: join(LOG_DIR, `issue-${number}-stopblocks.txt`), ISSUE_RUN_MAXBLOCKS: String(MAX_STOP_BLOCKS) };
     const denials = [];
-    let status = 'NOT-PASS', reason = '', round = 0, waits = 0, lastResult = '';
+    let status = 'NOT-PASS', reason = '', round = 0, waits = 0, lastResult = '', undecidable = '';
 
     while (round < MAX_ROUNDS) {
       round++;
@@ -346,7 +346,10 @@ try {
       for (const d of res.json?.permission_denials ?? []) denials.push(String(d.tool_name));
       lastResult = String(res.json?.result ?? '');
       if (res.timedOut) { reason = `1回の上限 ${ROUND_MINUTES} 分を超えて打ち切った。途中から続ける。`; continue; }
-      if (!(existsSync(reportPath) && L.reportClaimsPass(L.readText(reportPath)))) {
+      const reportText = existsSync(reportPath) ? L.readText(reportPath) : '';
+      if (!L.reportClaimsPass(reportText)) {
+        undecidable = L.reportUndecidable(reportText);
+        if (undecidable) { step(`#${number} 報告が判定不能（合格の条件が両立しない）。次の回へ進まない`); break; }
         reason = `報告ファイルが「## 結果: 合格」になっていない。判定表で未合格の条件を満たす。最後の返答: ${L.tail(lastResult, 400)}`;
         continue;
       }
@@ -365,7 +368,8 @@ try {
       status = 'PASS';
       break;
     }
-    if (status === 'NOT-PASS') reason = `${MAX_ROUNDS} 回で合格しなかった。最後の理由: ${reason}`;
+    if (status === 'NOT-PASS') reason = undecidable ? `報告が判定不能（合格の条件が両立しない）。人が Issue の条件か守るファイルを直す。\n${undecidable}`
+      : `${MAX_ROUNDS} 回で合格しなかった。最後の理由: ${reason}`;
 
     const commits = run('git', ['-C', ROOT, 'log', '--oneline', `${headBefore}..HEAD`]).stdout.split(/\r?\n/).filter(Boolean);
     const report = existsSync(reportPath) ? L.readText(reportPath) : `（報告ファイルが無い）\n\n最後の返答:\n${L.tail(lastResult)}`;
