@@ -14,7 +14,7 @@ project: KaedeScapeBuii
 | 状態 | 基本設計・**決めること D1〜D12 は全部決定**（D2・D7・D12 はユーザーの指定、残りは 2026-10-23 ユーザー「おすすめで決めて」で推しの案に決定）。**K1・K2 済み**（2026-10-23。キットのリポジトリ [`kaedeasset/issue-driven-kit`](https://github.com/kaedeasset/issue-driven-kit)・公開（MIT）・K2 の確かめは 7 章の後ろ）。**K3〜K6 の仕事も済み**（キット自身に Node 版を入れ、キットの Issue #1〜#5 を無人の回で回して、5 件とも 1 回目で合格。2026-10-23 14:06〜14:33）。残りは人が Mac で確かめる K-6・K-7。K3（Node 版の見本のプロジェクト）から |
 | 元 | このリポジトリの Issue 駆動の一式（記録 23/02）・一般化の手順書 `issue-driven-repo-setup.md` |
 | 版 | **Unity 版**：Windows・PowerShell（いまのこのリポジトリの形）／**Node 版**：Windows と Mac・**PowerShell を使わず Node.js の脚本だけ**・テストの道具は `.issue-kit/config.json` で選ぶ（vitest・`node --test`・決めたコマンド。仕様 11 章） |
-| 最初に入れる先 | Unity 版 → このリポジトリ（同じ形になることの確かめ）／Node 版 → 作者の rpg-online-cloudflare（private・TypeScript・Cloudflare Workers・D1）。**2026-10-23 に外れた**：入れるのは作者が手で行い、Node 版の確かめはキット自身に入れて行った |
+| 最初に入れる先 | Unity 版 → このリポジトリ（同じ形になることの確かめ）／Node 版 → 作者の rpg-online-cloudflare（公開・TypeScript・Cloudflare Workers・D1）。**2026-10-23 に外れた**：入れるのは作者が手で行い、Node 版の確かめはキット自身に入れて行った |
 | 変えた所 | 初版（同じ日）は「芯は PowerShell 7 で共通、Node は差し替え部品」だった。ユーザーの決定（2026-10-23「Unity は Windows 依存 PS を使う、vitest のほうは PS は使わない、node 関連のスクリプトだけでできるはず、2 つ区別して入れて、利用者は選択できるようにする」）で、**脚本は版ごとに別に作り、決まりと文書だけを共有する**形に書き直した |
 
 ---

@@ -5,20 +5,22 @@ GitHub Issue に合格の条件と確認コマンドを書いてラベルを付�
 ## Summary (English)
 
 Write pass criteria and a check command in a GitHub Issue, add a label, and Claude Code runs design, implementation and tests unattended until the check passes.
-Track record (as of 2026-11-09, counted by `scripts/issue-run/stats.mjs`): in the original Unity repository KaedeScapeBuii (private), 95 of 100 unattended Issues passed (81 on the first try) over 466 commits; in this repository kaedeasset/issue-driven-kit (public), 45 of 47 passed (44 on the first try).
+Track record (counted by `scripts/issue-run/stats.mjs`; the date is given per repository): in the original Unity repository KaedeScapeBuii (private, as of 2026-11-09), 95 of 100 unattended Issues passed (81 on the first try) over 466 commits; in this repository kaedeasset/issue-driven-kit (public, as of 2026-11-12), 48 of 50 passed (47 on the first try). In mkanakureon/rpg-online-cloudflare (public, Node edition, as of 2026-11-12), 68 of 70 passed (66 on the first try) over 227 commits.
 It works by combining headless mode (`claude -p`), a Stop hook, `--resume` with the check command's output, and deny rules in settings, so the agent neither stops halfway, claims "done" without passing, nor runs dangerous operations.
 
 ## 実績
 
-2026-11-09 時点の記録です（更新し続ける数字ではありません）。`node scripts/issue-run/stats.mjs` で、無人の回が Issue に書いた結果のコメントから数えました（人が直してから閉じた Issue は合格に入れていません）。
+数えた日の時点の記録です（数えた日は行ごとに書いています。更新し続ける数字ではありません）。`node scripts/issue-run/stats.mjs` で、無人の回が Issue に書いた結果のコメントから数えました（人が直してから閉じた Issue は合格に入れていません）。
 
 | 対象 | 数字 |
 |---|---|
-| 元の Unity のリポジトリ KaedeScapeBuii（private） | 19 日（2026-10-22〜11-09）・コミット 466 件・無人の回に渡した Issue 100 件のうち 95 件が合格（81 件は 1 回目で合格） |
+| 元の Unity のリポジトリ KaedeScapeBuii（private。2026-11-09 に数えた） | 19 日（2026-10-22〜11-09）・コミット 466 件・無人の回に渡した Issue 100 件のうち 95 件が合格（81 件は 1 回目で合格） |
 | KaedeScapeBuii で作った物 | Unity の撮影ツール。描画方式 3 つ（Built-in・URP・HDRP）で EXE まで |
-| このリポジトリ kaedeasset/issue-driven-kit（公開） | 無人の回に渡した Issue 47 件のうち 45 件が合格（44 件は 1 回目で合格） |
+| このリポジトリ kaedeasset/issue-driven-kit（公開。2026-11-12 に数えた） | 無人の回に渡した Issue 50 件のうち 48 件が合格（47 件は 1 回目で合格） |
+| Node 版を入れたリポジトリ mkanakureon/rpg-online-cloudflare（公開。2026-11-12 に数えた） | 21 日（2026-10-22〜11-11）・コミット 227 件・無人の回に渡した Issue 70 件のうち 68 件が合格（66 件は 1 回目で合格） |
+| rpg-online-cloudflare で作った物 | Cloudflare Workers・D1 のゲームバックエンド（TypeScript）。API 11 機能と、ブラウザ・Unity・Unreal のクライアントの層 |
 
-合格した Issue はどれ？ → [kaedeasset/issue-driven-kit の合格した Issue の一覧](https://github.com/kaedeasset/issue-driven-kit/issues?q=label%3Aclaude-done)
+合格した Issue はどれ？ → [kaedeasset/issue-driven-kit の合格した Issue の一覧](https://github.com/kaedeasset/issue-driven-kit/issues?q=label%3Aclaude-done)・[mkanakureon/rpg-online-cloudflare の合格した Issue の一覧](https://github.com/mkanakureon/rpg-online-cloudflare/issues?q=label%3Aclaude-done)
 
 ## Issue 駆動を支える技術
 
