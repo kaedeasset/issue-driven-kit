@@ -27,6 +27,8 @@ $root = Split-Path $PSScriptRoot -Parent
 Set-Location $root
 . (Join-Path $PSScriptRoot 'issue-gh.ps1')
 
+# pwsh -File は -Change a,b を 1 つの文字列 'a,b' で渡すので、カンマで分ける（分けないと、2 本以上のときに守るファイルとの重なりを見落とす）
+$Change = @($Change | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 $Draft = $Draft -replace '\.(md|title\.txt|check\.ps1)$', ''
 $titleFile = "$Draft.title.txt"; $bodyFile = "$Draft.md"; $checkFile = "$Draft.check.ps1"
 foreach ($f in $titleFile, $bodyFile) { if (-not (Test-Path -LiteralPath $f)) { Write-Result 'FAIL' "下書きが無い: $f" 1 } }

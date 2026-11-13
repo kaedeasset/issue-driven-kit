@@ -208,6 +208,7 @@ test('Unity 版: Issue を作る・見る・閉じるスクリプトがある', 
     assert.match(s, /Write-Result 'PASS'/, `${f} が最後の行を Result: で出す`);
   }
   assert.match(readScript('issue-gh.ps1'), /^function Invoke-Gh\b/m, 'issue-gh.ps1 に Invoke-Gh がある');
+  assert.match(readScript('issue-create.ps1'), /^\$Change = @\(\$Change \| ForEach-Object \{ \$_ -split ',' \}/m, 'issue-create.ps1 は -Change a,b をカンマで分ける（pwsh -File は 1 つの文字列で渡す）');
   assert.ok(readScript('issue-result.ps1').includes('NOTRUN') && readScript('issue-result.ps1').includes('RUNNING'), '結果を見るスクリプトが、まだ回っていない回といま回っている回を分ける');
   assert.ok(readScript('issue-close.ps1').includes('claude-done'), '閉じるスクリプトは claude-done の Issue だけを閉じる');
   // 構文の誤りが 0 件（Windows と pwsh があるときだけ）
