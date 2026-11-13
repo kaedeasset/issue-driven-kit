@@ -4,7 +4,7 @@
 
 **キットの仕様（`shared/spec/`）・説明書（`shared/manuals/`）・読み物（`shared/reading/`）・設計（`docs/design/`）・Node 版（`editions/node/`）の正は、このキットに置く。**
 
-`editions/unity/files/` は、作者の Unity のリポジトリ KaedeScapeBuii（private）で動いた一式の写しで、正はそちらにある。キットの中では直さない。
+`editions/unity/files/` は、作者の Unity のリポジトリ KaedeScapeBuii（private）で動いた一式から始めた。2026-11-13 まで写しだった。いまはキットが正で、KaedeScapeBuii は Unity 版を入れた利用先の 1 つ（設計 `docs/design/unity-edition-decoupling-design.md`）。
 
 `editions/unreal/files/` は、作者の Unreal Engine のリポジトリ kaedevn（private）で動いている無人の回の部品 8 ファイルの写しで、正はそちらにある。キットの中では直さない。Unity 版の元になった実物で、入れる脚本は無い（写しだけ）。PC の中の個人のパスや秘密の値は元から無く、伏せた所は無い（元のコミットの中身と同じ）。
 
@@ -15,7 +15,7 @@
 | 抜いた物 | どうしたか |
 |---|---|
 | 元のリポジトリの記録の写し（作業の記録・無人の回のまとめ・プロンプトの記録・事例 18 ファイル） | 入れていない。説明書の中の、その記録へのリンクは文字にした（「記録 23/01」などの呼び名は残る） |
-| PC の中のパス `C:\Users\<作者>\` | `C:\Users\<you>\` にした。`editions/unity/files/` も同じに伏せ、試験 K-4 は参照も同じに伏せてから比べる（実物との差はこれだけ） |
+| PC の中のパス `C:\Users\<作者>\` | `C:\Users\<you>\` にした。`editions/unity/files/` も同じに伏せた |
 
 `shared/fixtures/` の見本の本文は、作者の private のリポジトリ（KaedeScapeBuii #1〜#13・rpg-online-cloudflare #1〜#4）の Issue の本文。どれも Claude Code が書いた作業の指示で、読み取りの試験に使う。
 

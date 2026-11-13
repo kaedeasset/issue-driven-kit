@@ -249,11 +249,11 @@ Claude を起動しない。対象の一覧と、各 Issue の「合格の条件
 | 眠らせない | Windows の `SetThreadExecutionState` | Mac は `caffeinate -i -w <PID>`。Windows は点検で知らせる |
 | 窓の簡易編集モード | 実行中だけ切る（Windows） | しない |
 | 二重起動の PID の確かめ | プロセスの名前が `pwsh`／`powershell` | プロセスの名前が `node` |
-| 書き込みの権限（1.2） | まだ実装していない（元のリポジトリで直してから写す） | 実装している |
-| まとめの作業場所（6 章） | まだ（絶対パスを書いている。元のリポジトリで直してから写す） | フォルダー名だけ |
-| 履歴 `runs.log`（6.1） | まだ（元のリポジトリで直してから写す） | `.issue-run/logs/runs.log`。対象 0 件なら直近に合格した Issue を出す |
+| 書き込みの権限（1.2） | まだ実装していない | 実装している |
+| まとめの作業場所（6 章） | まだ（絶対パスを書いている） | フォルダー名だけ |
+| 履歴 `runs.log`（6.1） | まだ | `.issue-run/logs/runs.log`。対象 0 件なら直近に合格した Issue を出す |
 | 判定不能（3 章・4 章） | 実装している（`Scripts/issue-run.ps1` の `Get-UndecidableReport` と `stop-hook.ps1`） | 実装している |
-| 終わりの知らせ（6.2） | まだ（元のリポジトリで直してから写す） | ベル。Mac は `osascript` の通知も。`--no-notify` で止める |
+| 終わりの知らせ（6.2） | まだ | ベル。Mac は `osascript` の通知も。`--no-notify` で止める |
 | 脚本の名前（コメントの頭） | `issue-run.ps1` | `issue-run.mjs` |
 | ログの置き場 | `Logs/IssueRun/` | `.issue-run/logs/` |
 | 記録の置き場 | `Docs/Reports/` | `docs/reports/` |

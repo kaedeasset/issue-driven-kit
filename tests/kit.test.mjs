@@ -2,7 +2,9 @@
 // 合格の条件の正: docs/design/issue-driven-kit-basic-design.md の 1.2（K-1〜K-8）。
 //   K-1  共有の部品と Unity 版の部品が全部ある
 //   K-3  （Unity 側）Unity 版の読み取りの関数が、見本を答えどおりに読み、Node 版の見本の js の塊を確認コマンドにしない … Windows と pwsh があるときだけ
-//   K-4  Unity 版を空の git の作業場所に入れると、参照（KaedeScapeBuii）と同じ物ができる … 環境変数 KIT_UNITY_REFERENCE があるときだけ
+//   K-4  入れた結果: Unity 版を空の git の作業場所に入れると一覧どおりの物ができる … Windows と pwsh があるときだけ
+//        （Unity 版はキットが正。設計 docs/design/unity-edition-decoupling-design.md の 3.7。固有の語の試験は同じ設計の U2 で足す）
+//   決まりの文に、Unity 版が写しだった頃の語が残っていない（同じ設計の 3.1）
 //   共有の決まり（原則・進め方の決まり）が、各版の CLAUDE.md にそのまま入っている
 //   移行ガイドの節・issueKit の語が残っていない・Node 版のひな形が言語とテストの道具を決め打ちしない（設計 docs/design/test-entry-config-design.md の 2.12）
 import { test } from 'node:test';
@@ -76,7 +78,7 @@ test('UE 版の files/ は一覧どおりで、余りが無い', () => {
   assert.deepEqual(walk(root).sort(), [...unrealFiles].sort());
 });
 
-// Unity 版も同じ決まりを持つ（KaedeScapeBuii 29fc518 の差分を写した。shared/SOURCE.md）
+// Unity 版も同じ決まりを持つ（2026-11-13 に入れた。shared/SOURCE.md）
 for (const [name, edition] of [['UE 版', 'unreal'], ['Unity 版', 'unity']]) {
   test(`${name}の脚本と Stop hook が、判定不能の報告を同じ決まりで見る`, () => {
     const head = '(?m)^[ \\t]*##[ \\t]*結果:[ \\t]*判定不能[ \\t]*$';
@@ -156,8 +158,16 @@ test('K-3（Unity 側）Node 版の見本の確認コマンドを読まない', 
   assert.match(r.stdout, /Result: PASS/);
 });
 
-test('K-4 Unity 版を入れると参照と同じ物ができる', { skip: (!hasPwsh || !process.env.KIT_UNITY_REFERENCE) && 'Windows・pwsh・環境変数 KIT_UNITY_REFERENCE（KaedeScapeBuii のパス）が要る' }, () => {
-  const ref = process.env.KIT_UNITY_REFERENCE;
+// Unity 版が写しだった頃の決まりの語が、決まりを書く 6 つのファイルに残っていない（設計 unity-edition-decoupling-design.md の 3.1・S-3）。
+// 語をそのまま書くとこのファイル自身が当たるので、2 つに分けて持つ
+test('決まりの文に、Unity 版が写しだった頃の語が無い', () => {
+  const words = [['実物の', '写し'], ['参照との', '比べ'], ['元のリポジトリで直してから', '写す'], ['KIT_UNITY_', 'REFERENCE']].map((w) => w.join(''));
+  const files = ['CLAUDE.md', 'docs/design/issue-driven-kit-basic-design.md', 'shared/SOURCE.md', 'docs/design/label-wording-design.md', 'shared/spec/issue-run-spec.md', 'tests/kit.test.mjs'];
+  const hits = files.flatMap((f) => read(f).split('\n').flatMap((line, i) => words.filter((w) => line.includes(w)).map((w) => `${f}:${i + 1} ${w}`)));
+  assert.deepEqual(hits, [], `残っている: ${hits.join(', ')}`);
+});
+
+test('K-4 入れた結果: Unity 版を空の作業場所に入れると一覧どおりの物ができる', { skip: !hasPwsh && 'Windows と pwsh が要る' }, () => {
   const dir = mkdtempSync(join(tmpdir(), 'kit-unity-'));
   try {
     assert.equal(spawnSync('git', ['init', '-q', dir]).status, 0);
@@ -166,13 +176,12 @@ test('K-4 Unity 版を入れると参照と同じ物ができる', { skip: (!has
     assert.ok(!existsSync(join(dir, 'CLAUDE.md')), 'DryRun なのに書いた');
     const r = pwsh(['-NoProfile', '-File', join(kit, 'editions/unity/install.ps1'), '-Target', dir], { encoding: 'utf8' });
     assert.equal(r.status, 0, r.stdout + r.stderr);
-    // 公開の写しは、PC の中のパス（C:\Users\<名前>\）だけ <you> に伏せてある（shared/SOURCE.md）。参照も同じに伏せてから比べる
-    const mask = (t) => t.replace(/C:\\Users\\[^\\<>\s]+\\/g, 'C:\\Users\\<you>\\').replace(/C:\/Users\/[^/<>\s]+\//g, 'C:/Users/<you>/').replace(/`c\/Users\/[^/<>\s]+\//g, '`c/Users/<you>/');
-    const hash = (p) => createHash('sha256').update(mask(readFileSync(p, 'utf8'))).digest('hex');
-    // 参照と違ってよいのは、利用先が書くひな形の CLAUDE.md だけ
-    const allowed = new Set(['CLAUDE.md']);
-    const differ = unityFiles.filter((f) => !allowed.has(f) && hash(join(dir, f)) !== hash(join(ref, f)));
-    assert.deepEqual(differ, [], `参照と違う: ${differ.join(', ')}`);
+    // 入れた物は、一覧のファイルが全部あり、中身がキットの物（editions/unity/files/）と同じ
+    const hash = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
+    const missing = unityFiles.filter((f) => !existsSync(join(dir, f)));
+    assert.deepEqual(missing, [], `入っていない: ${missing.join(', ')}`);
+    const differ = unityFiles.filter((f) => hash(join(dir, f)) !== hash(join(kit, 'editions/unity/files', f)));
+    assert.deepEqual(differ, [], `キットの物と違う: ${differ.join(', ')}`);
     const v = JSON.parse(readFileSync(join(dir, '.issue-kit/version'), 'utf8'));
     assert.equal(v.edition, 'unity');
     // もう一度入れると、全部「同じ」で何も書かない

@@ -34,8 +34,8 @@ Node 版を入れた人と、共有の説明書を読む人が、「札」とい
 
 | 置き場 | 理由 |
 |---|---|
-| `editions/unity/files/` | 元の Unity のリポジトリで動いた実物の写し。変えると試験 K-4 の許す差を足すことになり、言い方の違いはその理由にならない |
-| `shared/fixtures/` | 「札」があるのは `issues/02.md`・`03.md` の「元の文書」の地の文だけで、Unity 版の文書の見出しを指している。Unity 版と揃える（読みの答えには響かない） |
+| `editions/unity/files/` | この設計では直さない。Unity 版の言い換えは `unity-edition-decoupling-design.md` の U2 でする（2026-11-13 に、Unity 版の正がキットに移った） |
+| `shared/fixtures/` | 「札」があるのは `issues/02.md`・`03.md` の「元の文書」の地の文だけ。見本の本文は元の Issue の本文そのままなので変えない（読みの答えには響かない） |
 | 直下の写し（`.claude/`・`.github/`・`scripts/`・`docs/guides/procedures/`・`docs/guides/decisions/`・`docs/guides/working/` の `github-repo.md`・`issue-driven-development.md`・`issue-run.md`・`worktree-lanes.md`） | 無人の回は直下の `.claude/` を書き換えない決まり（実行用の設定の deny と指示文）。版の元（`editions/node/files/`）を直した後に、会話で `node editions/node/install.mjs --target . --update` を回して入れ直す。`docs/guides/working/examples/` は写しではなくキット用なので 3 章で直す |
 | `docs/inspecs/`・`docs/reports/` | 人の文書と、その時点の記録 |
 | `docs/design/` のほかの設計書 | `readme-portfolio-design.md` は「札」を使わない語として挙げているだけ |

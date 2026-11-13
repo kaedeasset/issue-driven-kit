@@ -32,7 +32,7 @@ project: KaedeScapeBuii
 | K-1 | 共有の部品（決まり・スキル・文書・ひな形・仕様）が全部入っている（4 章の一覧が全部ある） | 一覧の各パスが存在するかを脚本で見る | 機械 |
 | K-2 | **Node 版に PowerShell が出てこない**：`.ps1` が 0 本、脚本・設定・スキル・ひな形・手順書に `pwsh`・`powershell` が 0 件 | 検索して 0 件 | 機械 |
 | K-3 | **2 つの版の無人の回が、同じ Issue の本文を同じに読む**（合格の条件の行・確認コマンド・守るファイル・前提） | 共有の見本（Issue の本文 → 期待する読み取りの JSON。Unity 版の見本と Node 版の見本）を両方の版で読ませて比べる。ほかの版の確認コマンドの塊は読まない | 機械 |
-| K-4 | Unity 版を空のフォルダーに入れると、このリポジトリと同じ部品の組ができる（名前を埋めた後の差が、決めた所だけ） | 比べる脚本 | 機械 |
+| K-4 | Unity 版に固有の語が無く、空の作業場所に入れると一覧どおりの物ができる（2026-11-13 に置き換えた。`unity-edition-decoupling-design.md`） | 試験 | 機械 |
 | K-5 | Node 版のテストの入口が、全部・0 件・わざと落とすの 3 つで、期待どおりの `Result:` 行と終了コードを返す（決まりの正は仕様 11 章。道具は `.issue-kit/config.json` で選ぶ） | 見本と rpg-online-cloudflare で回す | 機械 |
 | K-6 | Node 版を rpg-online-cloudflare に入れた後、点検が NG 0・DryRun が終了コード 0 | **Windows（この PC）と Mac の両方**で回す | 機械（Mac は人が実行） |
 | K-7 | rpg-online-cloudflare で、**Mac** の無人の回が Issue を 1 件、1 回目の起動で合格させる | 結果のコメント | 機械（人が Mac で起動） |
@@ -70,7 +70,7 @@ flowchart TB
         S6["見本（Issue の本文 → 期待する読み取り）"]
     end
     subgraph UNITY["editions/unity/：Windows・PowerShell"]
-        U0["スキル・CLAUDE.md・作業中に引く文書<br/>（KaedeScapeBuii の実物の写し）"]
+        U0["スキル・CLAUDE.md・作業中に引く文書<br/>（キットが正）"]
         U1["issue-run.ps1・stop-hook.ps1・issue-run-doctor.ps1・Sync-Lanes.ps1"]
         U2["unity-test.ps1"]
         U3["install.ps1"]

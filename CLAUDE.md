@@ -41,7 +41,7 @@ node scripts/issue-run/issue-run.mjs --dry-run     # 対象の Issue を見る�
 ## 守るもの（変えない）
 
 - **無人の Issue 実行の決まりは `shared/spec/issue-run-spec.md` に 1 回だけ書く。** 変えるときは、仕様 → 両方の版の脚本 → 見本（`shared/fixtures/`）の順に直す。
-- **`editions/unity/files/` は KaedeScapeBuii で動いた実物の写し。** 変えるのは理由があるときだけで、変えたら試験の K-4（参照との比べ）の許す差を、理由と一緒に直す。いま許している差は、PC の中のパスを `<you>` に伏せたことだけ（公開のため）。
+- **`editions/unity/files/` はキットが正。** 特定のプロジェクトだけの語（名前・Unity の版・フォルダー）を入れない（試験 K-4 が見る）。元は KaedeScapeBuii で、改善はキットに入れてから `install.ps1 -Update` で戻す（設計 `docs/design/unity-edition-decoupling-design.md`）。
 - **Node 版（`editions/node/`）に PowerShell を入れない**（`.ps1`・`pwsh`・`powershell` の実行を書かない。Claude の道具を断る `PowerShell(…)` の設定の行だけは可。基本設計 D2）。Node 版の脚本は Node.js の標準の部品だけ（D11）。
 - `shared/claude-md/` の決まりは、両方の版の `CLAUDE.md` に同じ文で入れる（試験が見る）。
 - **このリポジトリの直下の `.claude/`・`scripts/`・`docs/guides/` は、`editions/node/files/` から入れた写し。** 直すときは `editions/node/files/` を直してから、`node editions/node/install.mjs --target . --update` で入れ直す（直下だけを直さない）。キット用なのは、テストの入口の設定 `.issue-kit/config.json`（`node --test` で `tests/*.test.mjs` を回す）と `commit-hooks.conf` だけ（`scripts/test.mjs` も版の写し）。`.claude/skills/document-authoring/` と `Tools/commit-hooks/` は版の写しではなく、kaedeasset/document-authoring・kaedeasset/commit-hooks の `git subtree`（ここで直さない。向こうで直して `git subtree pull`）。**コミットメッセージの形と載せない物はフックが検査する**（形は `Tools/commit-hooks/rules.md`。`commit` スキルのメッセージの節はこのリポジトリでは使わない。`--no-verify` を使わない。フックが無い PC では `sh Tools/commit-hooks/install.sh node`）。
