@@ -5,7 +5,7 @@ GitHub Issue に合格の条件と確認コマンドを書いてラベルを付�
 ## Summary (English)
 
 Write pass criteria and a check command in a GitHub Issue, add a label, and Claude Code runs design, implementation and tests unattended until the check passes.
-Track record (counted by `scripts/issue-run/stats.mjs`; the date is given per repository): in the original Unity repository KaedeScapeBuii (private, as of 2026-11-09), 95 of 100 unattended Issues passed (81 on the first try) over 466 commits; in this repository kaedeasset/issue-driven-kit (public, as of 2026-11-12), 48 of 50 passed (47 on the first try). In mkanakureon/rpg-online-cloudflare (public, Node edition, as of 2026-11-12), 68 of 70 passed (66 on the first try) over 227 commits.
+Track record (counted by `scripts/issue-run/stats.mjs`; the date is given per repository): in the original Unity repository KaedeScapeBuii (private, as of 2026-11-09), 95 of 100 unattended Issues passed (81 on the first try) over 466 commits; in the Unreal Engine repository kaedevn that the Unity edition came from (private, as of 2026-11-13), 104 of 108 passed (96 on the first try) over 542 commits; in this repository kaedeasset/issue-driven-kit (public, as of 2026-11-12), 48 of 50 passed (47 on the first try). In mkanakureon/rpg-online-cloudflare (public, Node edition, as of 2026-11-12), 68 of 70 passed (66 on the first try) over 227 commits.
 It works by combining headless mode (`claude -p`), a Stop hook, `--resume` with the check command's output, and deny rules in settings, so the agent neither stops halfway, claims "done" without passing, nor runs dangerous operations.
 
 ## 実績
@@ -16,6 +16,8 @@ It works by combining headless mode (`claude -p`), a Stop hook, `--resume` with 
 |---|---|
 | 元の Unity のリポジトリ KaedeScapeBuii（private。2026-11-09 に数えた） | 19 日（2026-10-22〜11-09）・コミット 466 件・無人の回に渡した Issue 100 件のうち 95 件が合格（81 件は 1 回目で合格） |
 | KaedeScapeBuii で作った物 | Unity の撮影ツール。描画方式 3 つ（Built-in・URP・HDRP）で EXE まで |
+| Unity 版の元になった Unreal Engine のリポジトリ kaedevn（private。2026-11-13 に数えた） | 19 日（2026-10-14〜11-01）・コミット 542 件・無人の回に渡した Issue 108 件のうち 104 件が合格（96 件は 1 回目で合格） |
+| kaedevn で作った物 | Unreal Engine 5.8 のゲーム（C++） |
 | このリポジトリ kaedeasset/issue-driven-kit（公開。2026-11-12 に数えた） | 無人の回に渡した Issue 50 件のうち 48 件が合格（47 件は 1 回目で合格） |
 | Node 版を入れたリポジトリ mkanakureon/rpg-online-cloudflare（公開。2026-11-12 に数えた） | 21 日（2026-10-22〜11-11）・コミット 227 件・無人の回に渡した Issue 70 件のうち 68 件が合格（66 件は 1 回目で合格） |
 | rpg-online-cloudflare で作った物 | Cloudflare Workers・D1 のゲームバックエンド（TypeScript）。API 11 機能と、ブラウザ・Unity・Unreal のクライアントの層 |
