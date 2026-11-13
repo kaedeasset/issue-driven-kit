@@ -22,7 +22,7 @@ pwsh -NoProfile -File Scripts/unity-test.ps1 -CompileOnly    # コンパイル�
 pwsh Scripts\issue-run.ps1 -DryRun                           # Issue の無人実行の点検（本番はユーザーが別の窓で）
 ```
 
-合否は最後の `Result:` 行（PASS 0・FAIL 1・**BLOCKED 3 = Unity エディタがこのフォルダーを開いている。合格ではない**）。
+合否は最後の `Result:` 行（PASS 0・FAIL 1・**BLOCKED 3 = Unity エディタがこのフォルダーを開いている・Smart App Control が Unity を止めた。合格ではない**）。
 
 ## 原則（常時）
 

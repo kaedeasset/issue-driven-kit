@@ -12,6 +12,7 @@
 # 5.1 で回すときは powershell -NoProfile -ExecutionPolicy Bypass -File … と書く（2026-10-22 にこの PC で実際に止められた）。
 # Unity エディタがこのプロジェクトを開いていると、バッチモードは同じフォルダーを開けない（ロックされる）。
 # そのときは起動せずに `Result: BLOCKED` で 3 を返す。エディタを勝手に閉じない（CLAUDE.md）。
+# Windows の Smart App Control が Unity の DLL を止めたとき（ログに 0x800711C7）も、コンパイルの FAIL でなく `Result: BLOCKED`（3）にする。
 # テストが 0 件のときは FAIL にする（フィルターの書き間違いで「何も回さずに合格」になるのを防ぐ）。
 param(
     [ValidateSet('EditMode', 'PlayMode', 'All')]
@@ -75,6 +76,13 @@ function Get-CompileErrors([string]$LogFile) {
     return @(Select-String -Path $LogFile -Pattern 'error CS\d+|Scripts have compiler errors' | ForEach-Object { $_.Line.Trim() } | Select-Object -Unique -First 20)
 }
 
+# Windows の Smart App Control が Unity の署名の無い DLL（Bee.BuildGraph.dll など）を止めた跡（コードの誤りではない。コンパイルが毎回落ちたことがある）
+function Test-AppControlBlock([string]$LogFile) {
+    if (-not $LogFile -or -not (Test-Path -LiteralPath $LogFile)) { return $false }
+    return [bool](Select-String -LiteralPath $LogFile -Pattern '0x800711C7' -SimpleMatch -Quiet)
+}
+$AppControlText = 'Windows の Smart App Control が Unity の DLL を止めた（ログに 0x800711C7。コードの誤りではない）。切るかはユーザーが決める。Scripts/issue-run-doctor.ps1 で状態を見る'
+
 function Show-LogTail([string]$LogFile) {
     if (Test-Path $LogFile) { Get-Content $LogFile -Tail 25 | ForEach-Object { Write-Host "  | $_" } }
 }
@@ -87,6 +95,7 @@ if ($CompileOnly) {
     $errors = Get-CompileErrors $log
     if ($code -eq -1) { Write-Result 'FAIL' "時間切れ（$TimeoutMinutes 分）" 1 }
     if ($errors.Count -or $code -ne 0) {
+        if (Test-AppControlBlock $log) { Write-Result 'BLOCKED' $AppControlText 3 }
         $errors | ForEach-Object { Write-Host "  $_" }
         if (-not $errors.Count) { Show-LogTail $log }
         Write-Result 'FAIL' "コンパイル（exit $code・エラー $($errors.Count) 行）" 1
@@ -111,6 +120,7 @@ foreach ($plat in $platforms) {
     if ($code -eq -1) { $summary += "$plat 時間切れ"; $failed = $true; continue }
     if (-not (Test-Path $xml)) {
         # 結果の XML が無い = テストまで行かなかった（コンパイルエラー・起動失敗）
+        if (Test-AppControlBlock $log) { Write-Result 'BLOCKED' $AppControlText 3 }
         $errors = Get-CompileErrors $log
         $errors | ForEach-Object { Write-Host "  $_" }
         if (-not $errors.Count) { Show-LogTail $log }

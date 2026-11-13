@@ -35,8 +35,8 @@
 | `.claude/issue-run/settings.json` | deny 50 個・Stop hook・env（自動更新を止める・時間切れを 90 分に） | 同上 |
 | `.claude/issue-run/stop-hook.ps1` | 報告が「合格」で守るファイルが無傷になるまで終わらせない | 同上 |
 | `.github/ISSUE_TEMPLATE/claude-run.md` | Issue のひな形 | `Docs/Guides/Procedures/issue-goal-setting.md` |
-| `Scripts/unity-test.ps1` | 確認コマンドが呼ぶテストの入口（`Result:` 行・0 件は FAIL・エディタが開いていれば BLOCKED） | `Docs/Guides/Procedures/unity-test-procedure.md` |
-| `Scripts/issue-run-doctor.ps1` | 再現の点検（道具・ログイン・origin・ラベル・部品・設定・Unity） | この文書の 6 章 |
+| `Scripts/unity-test.ps1` | 確認コマンドが呼ぶテストの入口（`Result:` 行・0 件は FAIL・エディタが開いている／Smart App Control が Unity を止めたら BLOCKED） | `Docs/Guides/Procedures/unity-test-procedure.md` |
+| `Scripts/issue-run-doctor.ps1` | 再現の点検（道具・ログイン・origin・ラベル・部品・設定・Unity・Smart App Control） | この文書の 6 章 |
 | `.claude/skills/design-cycle/` | 回し方（ゴール → 合格の条件 → 設計 → 実装 → テスト → 振り分け → 判定） | そのスキル |
 | `.claude/skills/github-issue/` | 会話の中で Issue を作る・見る・回す | そのスキル |
 | `Docs/Guides/Decisions/test-plan.md` | 用語・テストレベル・合格基準・中断基準・欠陥管理 | その文書 |
@@ -113,6 +113,7 @@ flowchart LR
 | `NG 設定` | deny が足りない・裸の `CLAUDE.md` の deny がある・Stop hook が無い | 元のプロジェクトの `origin/main` の `.claude/issue-run/settings.json` と比べる（7 章） |
 | `NG Unity` | プロジェクトの版のエディタが無い | Unity Hub・環境変数 `UNITY_EXE` |
 | `WARN Unity の使用中` | この作業場所をエディタが開いている | 閉じるか、別の worktree で回す |
+| `NG Smart App Control` | On で、この 7 日に Unity の署名の無い DLL を止めた（コンパイルが毎回 `0x800711C7` で落ちる。テストは BLOCKED になる） | 切るかはユーザーが決める（Windows セキュリティ → アプリとブラウザーの制御。一度切ると戻せない）。`WARN` は On だがまだ止めていない・評価モード。点検は状態を読むだけで設定を変えない |
 
 ### 6.4 結果を再現できるようにしておくもの
 

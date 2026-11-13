@@ -118,6 +118,16 @@ if (Test-Path $verFile) {
         })
     if ($holders.Count) { Report 'WARN' 'Unity の使用中' "エディタがこの作業場所を開いている（PID $(($holders | ForEach-Object { $_.ProcessId }) -join ', ')）。この作業場所で無人の回を起動すると、テストが BLOCKED になる" }
     else { Report 'OK' 'Unity の使用中' 'この作業場所を開いている Unity は無い' }
+    # Smart App Control（On だと Unity の署名の無い DLL が止められ、スクリプトのコンパイルが毎回落ちることがある）。状態を読むだけで、設定は変えない
+    $sac = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' -ErrorAction SilentlyContinue).VerifiedAndReputablePolicyState
+    $blocked = @(Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-CodeIntegrity/Operational'; Id = 3077; StartTime = (Get-Date).AddDays(-7) } -MaxEvents 200 -ErrorAction SilentlyContinue |
+            Where-Object { $_.Message -match '\\Unity\\' })
+    $was = if ($blocked.Count) { "（この 7 日で Unity の部品を $($blocked.Count) 回止めた跡・最後 $($blocked[0].TimeCreated.ToString('MM-dd HH:mm'))）" } else { '' }
+    if ($sac -eq 0) { Report 'OK' 'Smart App Control' "Off$was" }
+    elseif ($blocked.Count) { Report 'NG' 'Smart App Control' "On で、Unity の部品を止めている$was。テストは BLOCKED（0x800711C7）になる。切るかはユーザーが決める（一度切ると戻せない）" }
+    elseif ($sac -eq 1) { Report 'WARN' 'Smart App Control' 'On。いまは Unity を止めていないが、Windows の判定の更新で止め始めることがある（0x800711C7）。切るかはユーザーが決める' }
+    elseif ($sac -eq 2) { Report 'WARN' 'Smart App Control' '評価モード（いずれ On になることがある）。切るかはユーザーが決める' }
+    else { Report 'OK' 'Smart App Control' 'Off' }
     if (-not (Test-Path (Join-Path $Root 'Library'))) { Report 'WARN' 'Library' 'まだ無い（初めての取り込みで数分かかる）。先に unity-test.ps1 -CompileOnly を 1 回回しておくと無人の回の時間を使わない' }
 }
 

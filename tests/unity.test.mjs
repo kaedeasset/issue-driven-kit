@@ -5,6 +5,7 @@
 //   A3  無人の回の中（ISSUE_RUN_ROOT）では作業場所を聞かない（Resolve-WorkRoot・Invoke-PassCheck を回して確かめる）
 //   A4  点検（-DryRun）は実行中のロックで止めない
 //   A5  UNITY_EXE をユーザーの環境変数から読み、gh を PATH の外でも見つける
+//   A6  Smart App Control が Unity の DLL を止めた回（ログに 0x800711C7）を、テストの入口（unity-test.ps1）が BLOCKED（3）にし、点検が状態を見る
 // 関数を回す分は Windows と pwsh があるときだけ（tests/unity/call-function.ps1 で構文木から取り出す）。文字列と並び順はいつも見る。
 // 外に触る所（gh・Unity・Get-CimInstance）は回さない。npm のパッケージは使わない。
 import { test } from 'node:test';
@@ -32,8 +33,8 @@ const body = (name) => {
 };
 
 const hasPwsh = process.platform === 'win32' && runWithRetry(() => spawnSync('pwsh', ['-NoProfile', '-Command', 'exit 0'])).status === 0;
-const callFn = (names, code, stubs = '') => {
-  const r = runWithRetry(() => spawnSync('pwsh', ['-NoProfile', '-File', join(kit, 'tests/unity/call-function.ps1'), '-Names', names, '-Stubs', stubs, '-Code', code], { encoding: 'utf8' }));
+const callFn = (names, code, stubs = '', from = 'issue-run.ps1') => {
+  const r = runWithRetry(() => spawnSync('pwsh', ['-NoProfile', '-File', join(kit, 'tests/unity/call-function.ps1'), '-Names', names, '-Script', from, '-Stubs', stubs, '-Code', code], { encoding: 'utf8' }));
   assert.equal(r.status, 0, `call-function.ps1 が落ちた: ${r.stdout}${r.stderr}`);
   return r.stdout.replace(/\r/g, '').trim();
 };
@@ -127,4 +128,41 @@ test('Unity 版: UNITY_EXE と gh を PATH の外でも見つける', () => {
   assert.ok(iGh >= 0 && iAuth >= 0 && iGh < iAuth, 'gh を使う前に、PATH に無ければ GitHub CLI のフォルダーを探す');
   assert.ok(script.includes('gh.exe'), 'gh.exe があるときだけ PATH に足す');
   assert.ok(!script.includes('issue-gh'), 'まだ無いファイルの名前を書かない');
+});
+
+test('Unity 版: Smart App Control が止めた回は BLOCKED にする', () => {
+  const read = (f) => readFileSync(join(kit, 'editions/unity/files', f), 'utf8').replace(/\r/g, '');
+  const ut = read('Scripts/unity-test.ps1');
+  const mark = '0x800711C7';
+  assert.match(ut, /^function Test-AppControlBlock\b/m, '関数 Test-AppControlBlock がある');
+  assert.ok(ut.includes(mark), `印 ${mark} がある`);
+  // コンパイルだけの回とテストの回の両方で、ログに印があれば BLOCKED（3）で終わる
+  const utLines = ut.split('\n');
+  const blocked = utLines.map((l, i) => [l, i]).filter(([l]) => !isComment(l) && /Test-AppControlBlock \$log\b/.test(l) && l.includes("Write-Result 'BLOCKED'") && /\b3\b/.test(l)).map(([, i]) => i);
+  const iCompile = utLines.findIndex((l) => /^if \(\$CompileOnly\) \{/.test(l));
+  const iTests = utLines.findIndex((l) => /^foreach \(\$plat in \$platforms\)/.test(l));
+  assert.ok(iCompile >= 0 && iTests > iCompile, 'コンパイルだけの回とテストの回がある');
+  assert.ok(blocked.some((i) => i > iCompile && i < iTests), `コンパイルだけの回で BLOCKED にする（${blocked}）`);
+  assert.ok(blocked.some((i) => i > iTests), `テストの回で BLOCKED にする（${blocked}）`);
+  // 点検は状態を読むだけ（設定を変えない）
+  const doctor = read('Scripts/issue-run-doctor.ps1');
+  assert.ok(doctor.includes('Smart App Control') && doctor.includes('VerifiedAndReputablePolicyState'), '点検が Smart App Control の状態を見る');
+  assert.ok(!/Set-ItemProperty|New-ItemProperty|CiTool/.test(doctor), '点検は設定を変えない');
+  // 手順書と全体の文書
+  assert.ok(read('Docs/Guides/Procedures/unity-test-procedure.md').split('\n').some((l) => l.includes(mark) && l.includes('BLOCKED')), '手順書に BLOCKED（0x800711C7）の行がある');
+  assert.ok(read('Docs/Guides/Working/issue-driven-development.md').includes('Smart App Control'), '全体の文書に Smart App Control がある');
+  // 関数を取り出して回す（Windows と pwsh があるときだけ）: 印のあるログで真・無いログで偽・ファイルが無ければ偽
+  if (!hasPwsh) return;
+  const dir = mkdtempSync(join(tmpdir(), 'kit-unity-acb-'));
+  try {
+    const got = callFn('Test-AppControlBlock', [
+      `$a = Join-Path '${dir}' 'a.log'; $b = Join-Path '${dir}' 'b.log'`,
+      "Set-Content -LiteralPath $a -Value 'line', 'Failed to load Bee.BuildGraph.dll 0x800711C7'",
+      "Set-Content -LiteralPath $b -Value 'line', 'error CS0103: x'",
+      '"$(Test-AppControlBlock $a),$(Test-AppControlBlock $b),$(Test-AppControlBlock (Join-Path $a none))"',
+    ].join('\n'), '', 'unity-test.ps1');
+    assert.equal(got, 'True,False,False');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

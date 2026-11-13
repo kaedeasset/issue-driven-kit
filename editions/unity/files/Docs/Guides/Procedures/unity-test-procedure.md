@@ -26,6 +26,7 @@ pwsh -NoProfile -File Scripts/unity-test.ps1 -CompileOnly          # コンパ�
 | `Result: FAIL  EditMode 結果なし（exit 1）` | 1 | テストまで行かなかった。上に `error CS…` | コンパイルエラーを直す |
 | `Result: FAIL  …` で「0 件」 | 1 | フィルターの書き間違い・テストのアセンブリが無い | 名前空間.クラスを確かめる |
 | `Result: BLOCKED  Unity がこのプロジェクトを開いている` | 3 | 回せなかった。**PASS でも FAIL でもない** | エディタを閉じてもらうか「未判定」と報告する。エディタを勝手に止めない |
+| `Result: BLOCKED  Windows の Smart App Control が Unity の DLL を止めた` | 3 | 回せなかった（ログに `0x800711C7`。コードの誤りではない） | `issue-run-doctor.ps1` で状態を見て、ユーザーに伝える。切るかはユーザーが決める |
 
 ログと NUnit の XML は `Logs/UnityTest/<日時>/`。
 
