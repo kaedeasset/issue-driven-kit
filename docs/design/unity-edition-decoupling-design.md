@@ -100,7 +100,8 @@ flowchart LR
 | F5 | `mkanakureon` | 作者のアカウント | 4 行・2 ファイル |
 | F6 | Windows と Mac のユーザーのフォルダーのパスで、名前が `<you>` でない物（置き換える前の K-4 の `mask` が伏せていた 3 つの形） | PC の中のパス | 0 行 |
 | F7 | `札` | 言い換える語 | 19 行・6 ファイル |
-| F8 | `#\d{1,3}\b` | private の Issue の番号（「#61」「#103」） | 32 行 |
+| F8 | `#(?![123]\b)\d{1,3}\b` | private の Issue の番号（「#61」「#103」）。例に使う番号は `#1`〜`#3` だけにする（ひな形の「- #1」・コミットの例の「Issue #3」は残る。U2 の Issue を作るときに、全部の番号を禁じると例まで当たると分かり、狭めた） | `#` と数字の行は 32 行（例の番号を含む） |
+| F9 | `\bM1\b`・`\bD9\b`・`ShotService`・`ShotCapturer`・`TestWorldBuilder` | 作者のプロジェクトの段・決めごと・クラスの名前（F3 に当たらない物。`genai-cli-mcp-policy.md` にある） | 10 行前後（U2 の Issue を作るときに見つけた） |
 
 言い換え方（U2 の Issue の本文にそのまま入れる。無人の回が自分で決める所を残さない）:
 
@@ -110,7 +111,9 @@ flowchart LR
 | 版の表の行「Unity ・ 6000.6.6f1（d20c9ac777da）」・「Unity 6000.6」 | 「Unity ・ `ProjectSettings/ProjectVersion.txt` の版」・「Unity 6」。版のハッシュも消す |
 | 「kaedevn（UE）の issue-run をそのまま持ってきた」 | 「元は Unreal Engine のプロジェクトの仕組み」 |
 | 「kaedevn #15・#33 で…」「2026-11-01 #61: …」のような由来 | 番号とプロジェクトの名前を外し、起きたことだけを残す（「始めた回が約 80 分待って打ち切られたことがある」）。E3 |
-| 例の中の Issue の番号（`-Issue 12`・「#12」） | `-Issue 12` はそのまま（`#` が無いので当たらない）。「#12」は「#<番号>」 |
+| 例の中の Issue の番号（`-Issue 12`・「#12」） | `-Issue 12` はそのまま（`#` が無いので当たらない）。`#1`〜`#3` はそのまま。ほかの番号の例は「#<番号>」か `#1`〜`#3` |
+| `issue-goal-setting.md` 9 章の表の、Issue の番号の列 | 列の中身を「—」にする（行と出来事は残す） |
+| 見出しの中の固有の語（`genai-cli-mcp-policy.md` の「2.3 M1 での実際」「6. kaedevn での事実」など） | 見出しは消さずに言い換える（「2.3 実際にできたこと」「6. 元のプロジェクトでの事実」）。**見出しの数はどのファイルも変えない** |
 | パスの例 `C:\Users\<you>\Documents\UnityProject\KaedeScapeBuii-wt2` | `C:\work\<プロジェクト>-wt2` |
 | POSIX 形の例 `c/Users/<you>/Documents/UnityProject/KaedeScapeBuii` | `c/work/<プロジェクト>` |
 | 名前空間の例 `KaedeScapeBuii.Tests.EditMode` | `<名前空間>.Tests.EditMode`（ひな形の `CLAUDE.md` と同じ書き方）。`issue-goal-setting.md` の確認コマンドの例は、表の行と正規表現を同じ名前空間にそろえる |
