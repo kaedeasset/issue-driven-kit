@@ -76,16 +76,19 @@ test('UE 版の files/ は一覧どおりで、余りが無い', () => {
   assert.deepEqual(walk(root).sort(), [...unrealFiles].sort());
 });
 
-test('UE 版の脚本と Stop hook が、判定不能の報告を同じ決まりで見る', () => {
-  const head = '(?m)^[ \\t]*##[ \\t]*結果:[ \\t]*判定不能[ \\t]*$';
-  const section = '(?m)^[ \\t]*##[ \\t]*両立しない条件[ \\t]*$';
-  for (const f of ['Scripts/issue-run.ps1', '.claude/issue-run/stop-hook.ps1']) {
-    const text = read(`editions/unreal/files/${f}`);
-    assert.ok(text.includes(head), `${f} に「## 結果: 判定不能」の行の決まりが無い`);
-    assert.ok(text.includes(section), `${f} に節「## 両立しない条件」の決まりが無い`);
-  }
-  assert.match(read('editions/unreal/files/.claude/issue-run/prompt.md'), /## 結果: 合格 \/ 未合格 \/ 判定不能/);
-});
+// Unity 版も同じ決まりを持つ（KaedeScapeBuii 29fc518 の差分を写した。shared/SOURCE.md）
+for (const [name, edition] of [['UE 版', 'unreal'], ['Unity 版', 'unity']]) {
+  test(`${name}の脚本と Stop hook が、判定不能の報告を同じ決まりで見る`, () => {
+    const head = '(?m)^[ \\t]*##[ \\t]*結果:[ \\t]*判定不能[ \\t]*$';
+    const section = '(?m)^[ \\t]*##[ \\t]*両立しない条件[ \\t]*$';
+    for (const f of ['Scripts/issue-run.ps1', '.claude/issue-run/stop-hook.ps1']) {
+      const text = read(`editions/${edition}/files/${f}`);
+      assert.ok(text.includes(head), `${f} に「## 結果: 判定不能」の行の決まりが無い`);
+      assert.ok(text.includes(section), `${f} に節「## 両立しない条件」の決まりが無い`);
+    }
+    assert.match(read(`editions/${edition}/files/.claude/issue-run/prompt.md`), /## 結果: 合格 \/ 未合格 \/ 判定不能/);
+  });
+}
 
 test('共有の決まりが、各版の CLAUDE.md にそのまま入っている', () => {
   for (const block of ['shared/claude-md/principles.md', 'shared/claude-md/conventions.md']) {

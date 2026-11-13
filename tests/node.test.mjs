@@ -508,8 +508,9 @@ test('仕様に判定不能の決まりがある', () => {
   const row = ch9.split('\n').find((l) => /^\| 判定不能/.test(l));
   assert.ok(row, '9 章の行');
   assert.equal(row.split('|').length - 2, 3, row);
-  assert.match(row, /まだ/);
-  assert.match(row, /実装している/);
+  // 両方の版が実装している（Unity 版は 2026-11-13 に KaedeScapeBuii 29fc518 から写した）
+  assert.doesNotMatch(row, /まだ/);
+  assert.equal(row.match(/実装している/g).length, 2, row);
   // 版のひな形と文書
   const prompt = read(join(nodeRoot, 'files/.claude/issue-run/prompt.md'));
   for (const w of ['## 結果: 合格', '## 結果: 判定不能', '## 両立しない条件']) assert.ok(prompt.includes(w), `prompt.md: ${w}`);

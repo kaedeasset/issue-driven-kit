@@ -315,6 +315,20 @@ function Get-ChangedProtected([string]$SnapshotFile) {
     return @($changed)
 }
 
+# 報告が「判定不能」（合格の条件どうし、または条件と守るファイルが両立しない）か。
+# 行「## 結果: 判定不能」と、中身のある節「## 両立しない条件」がそろえば節の中身を返す。そろわなければ ''。
+# stop-hook.ps1 も同じ決まりで見る（そちらは押し返さないだけ。変えるときは両方）。
+function Get-UndecidableReport([string]$Text) {
+    $t = ([string]$Text).Replace("`r", '')
+    if ($t -notmatch '(?m)^[ \t]*##[ \t]*結果:[ \t]*判定不能[ \t]*$') { return '' }
+    $m = [regex]::Match($t, '(?m)^[ \t]*##[ \t]*両立しない条件[ \t]*$')
+    if (-not $m.Success) { return '' }
+    $rest = $t.Substring($m.Index + $m.Length)
+    $next = [regex]::Match($rest, '(?m)^## ')
+    if ($next.Success) { $rest = $rest.Substring(0, $next.Index) }
+    return $rest.Trim()
+}
+
 # Unity はプロジェクトのフォルダーごとにロックする。エディタがこの作業場所を開いていると、バッチモード
 # （Scripts/unity-test.ps1）は回せない。開いていれば、このセッションでのバッチモードとエディタ起動を禁じて渡す。
 function Get-UnityState {
@@ -559,6 +573,7 @@ $settingsText = (Get-Content $SettingsTemplate -Raw -Encoding utf8).Replace('{{S
         $round = 0
         $waits = 0
         $lastResult = ''
+        $undecidable = ''
 
         while ($round -lt $MaxRounds) {
             $round++
@@ -590,8 +605,13 @@ $settingsText = (Get-Content $SettingsTemplate -Raw -Encoding utf8).Replace('{{S
             $lastResult = [string](Get-Field $res.Json 'result')
 
             if ($res.TimedOut) { $reason = "1回の上限 $RoundMinutes 分を超えて打ち切った。途中から続ける。"; continue }
-            $claimed = (Test-Path $reportPath) -and ((Get-Content $reportPath -Raw -Encoding utf8) -match '(?m)^##\s*結果:\s*合格\s*$')
+            $reportText = if (Test-Path $reportPath) { [string](Get-Content $reportPath -Raw -Encoding utf8) } else { '' }
+            $claimed = $reportText -match '(?m)^##\s*結果:\s*合格\s*$'
             if (-not $claimed) {
+                # 判定不能（合格の条件が両立しない）と決まった形で書いてあれば、確認コマンドを回さず、次の回へ進まずに人へ返す
+                # （作る側をどう直しても合格できない Issue で 4 回を使い切らない。キットの Node 版 2026-11-12・UE 版と同じ決まり）
+                $undecidable = Get-UndecidableReport $reportText
+                if ($undecidable) { Write-Step "#$number 報告が判定不能（合格の条件が両立しない）。次の回へ進まない"; break }
                 $reason = "報告ファイルが「## 結果: 合格」になっていない。判定表で未合格の条件を満たす。最後の返答: $(Get-Tail $lastResult 400)"
                 continue
             }
@@ -610,7 +630,10 @@ $settingsText = (Get-Content $SettingsTemplate -Raw -Encoding utf8).Replace('{{S
             $status = 'PASS'
             break
         }
-        if ($status -eq 'NOT-PASS') { $reason = "$MaxRounds 回で合格しなかった。最後の理由: $reason" }
+        if ($status -eq 'NOT-PASS') {
+            $reason = if ($undecidable) { "報告が判定不能（合格の条件が両立しない）。人が Issue の条件か守るファイルを直す。`n$undecidable" }
+            else { "$MaxRounds 回で合格しなかった。最後の理由: $reason" }
+        }
 
         $commits = @(& git -C $RepoRoot log --oneline "$headBefore..HEAD")
         $report = if (Test-Path $reportPath) { Get-Content $reportPath -Raw -Encoding utf8 } else { "（報告ファイルが無い）`n`n最後の返答:`n$(Get-Tail $lastResult)" }

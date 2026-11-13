@@ -1,7 +1,7 @@
 ﻿# stop-hook.ps1 — issue-run の Claude が返答を終えようとしたときに呼ばれる（Stop hook）。
 # 合格していなければ {"decision":"block"} を返して、同じプロセスのまま作業を続けさせる。
 # 指示文で「止まるな」と書くだけでは保証にならないので、終わってよいかを仕組みで決める。
-# ここで見るのは、報告ファイルが「## 結果: 合格」・守るファイルが開始時のまま、の 2 つだけ（数秒）。
+# ここで見るのは、報告ファイルが「## 結果: 合格」・守るファイルが開始時のまま、の 2 つだけ（数秒。報告が判定不能なら押し返さない）。
 # 確認コマンドは回さない。issue-run.ps1 が回の後に 1 回だけ回し、落ちれば出力を付けて同じ会話を再開する
 # （2026-10-15: hook・判定役・スクリプトで 3 回回していた。重い確認が 90 分の上限の中で何度も走る）。
 #
@@ -36,6 +36,20 @@ function Get-NotPassReason {
     }
 
     return ''
+}
+
+# 判定不能（合格の条件どうし、または条件と守るファイルが両立しない）と決まった形で書いてあれば、押し返さず回数も数えない。
+# 形: 行「## 結果: 判定不能」と、中身のある節「## 両立しない条件」。issue-run.ps1 の Get-UndecidableReport と同じ決まり（変えるときは両方）。
+# 人が Issue の条件か守るファイルを直す。
+if (Test-Path $env:ISSUE_RUN_REPORT) {
+    $reportText = ([string](Get-Content $env:ISSUE_RUN_REPORT -Raw -Encoding utf8)).Replace("`r", '')
+    $section = [regex]::Match($reportText, '(?m)^[ \t]*##[ \t]*両立しない条件[ \t]*$')
+    if (($reportText -match '(?m)^[ \t]*##[ \t]*結果:[ \t]*判定不能[ \t]*$') -and $section.Success) {
+        $body = $reportText.Substring($section.Index + $section.Length)
+        $nextHead = [regex]::Match($body, '(?m)^## ')
+        if ($nextHead.Success) { $body = $body.Substring(0, $nextHead.Index) }
+        if ($body.Trim()) { exit 0 }
+    }
 }
 
 $why = Get-NotPassReason

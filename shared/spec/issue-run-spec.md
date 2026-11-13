@@ -252,7 +252,7 @@ Claude を起動しない。対象の一覧と、各 Issue の「合格の条件
 | 書き込みの権限（1.2） | まだ実装していない（元のリポジトリで直してから写す） | 実装している |
 | まとめの作業場所（6 章） | まだ（絶対パスを書いている。元のリポジトリで直してから写す） | フォルダー名だけ |
 | 履歴 `runs.log`（6.1） | まだ（元のリポジトリで直してから写す） | `.issue-run/logs/runs.log`。対象 0 件なら直近に合格した Issue を出す |
-| 判定不能（3 章・4 章） | まだ（元のリポジトリで直してから写す） | 実装している |
+| 判定不能（3 章・4 章） | 実装している（`Scripts/issue-run.ps1` の `Get-UndecidableReport` と `stop-hook.ps1`） | 実装している |
 | 終わりの知らせ（6.2） | まだ（元のリポジトリで直してから写す） | ベル。Mac は `osascript` の通知も。`--no-notify` で止める |
 | 脚本の名前（コメントの頭） | `issue-run.ps1` | `issue-run.mjs` |
 | ログの置き場 | `Logs/IssueRun/` | `.issue-run/logs/` |
@@ -266,7 +266,7 @@ Claude を起動しない。対象の一覧と、各 Issue の「合格の条件
 
 | 所 | UE 版 |
 |---|---|
-| 判定不能（3 章・4 章） | **実装している**（`Scripts/issue-run.ps1` の `Get-UndecidableReport` と `stop-hook.ps1`。Unity 版へ写すときの元にできる） |
+| 判定不能（3 章・4 章） | **実装している**（`Scripts/issue-run.ps1` の `Get-UndecidableReport` と `stop-hook.ps1`。Unity 版の判定不能の元） |
 | リポジトリ | `-Repo` の既定が固定（Unity 版は `origin` から読む） |
 | 使用中の判定 | UE のエディタ・ビルドが PC で動いているか（同時 1 本） |
 | ログの置き場 | `Saved/IssueRun/` |

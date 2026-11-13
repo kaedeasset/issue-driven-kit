@@ -24,5 +24,6 @@
 | 元 | コミット | 写した日 | 写した物 |
 |---|---|---|---|
 | mkanakureon/KaedeScapeBuii（private） | fde14ae（説明書・設計書）・9ec9bcc（それ以外） | 2026-10-23 | `shared/manuals/`・`shared/reading/`・`docs/design/`・`editions/unity/files/` |
+| mkanakureon/KaedeScapeBuii（private） | 29fc518（このコミットの差分だけ） | 2026-11-13 | `editions/unity/files/` の 5 ファイルに判定不能の分（`Scripts/issue-run.ps1`・`.claude/issue-run/prompt.md`・`stop-hook.ps1`・`issue-run.md`・`issue-goal-setting.md`）。9ec9bcc より後のほかの変更は写していない |
 | mkanakureon/kaedevn（private） | 173367ee | 2026-11-13 | `editions/unreal/files/`（`Scripts/issue-run.ps1`・`Scripts/lib/text.ps1`・`.claude/issue-run/` の 3 つ・Issue のひな形・`issue-run.md`・`issue-goal-setting.md`） |
 | キットの開発用のリポジトリ（private） | 9d35ab0 | 2026-10-23 | 全部（公開のリポジトリは、ここから 1 コミットで始めた） |
