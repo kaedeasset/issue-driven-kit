@@ -173,6 +173,7 @@ flowchart LR
 |---|---|
 | [`shared/spec/`](shared/spec/) | 無人の Issue 実行の仕様の正（2 つの版はこれを実装する） |
 | `editions/unity/`・`editions/node/` | 2 つの版：`files/`（利用先に写す物）と入れるスクリプト |
+| `editions/unreal/files/` | Unity 版の元になった Unreal Engine のリポジトリの部品の写し（PowerShell。入れるスクリプトは無い） |
 | [`shared/manuals/`](shared/manuals/) | 使う人向けの説明書（導入ガイド・チーム向けガイドなど） |
 | [`docs/design/`](docs/design/) | キットの設計 |
 | `tests/` | キット自身のテスト（`npm test`＝`node --test`） |

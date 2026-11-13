@@ -260,6 +260,20 @@ Claude を起動しない。対象の一覧と、各 Issue の「合格の条件
 | テストの入口 | `Scripts/unity-test.ps1`。`Result: PASS\|FAIL\|BLOCKED  <要約>`。BLOCKED は 3 | `node scripts/test.mjs`。`Result: PASS <n>/<n>` か `Result: FAIL (<理由>)` |
 | テストの入口の設定 | 引数（`-TestPlatform` など） | `.issue-kit/config.json`（11 章）。実行用の設定の deny に `.issue-kit/**` の `Edit`・`Write` を入れ、無人の回に書き換えさせない |
 
+### 9.1 UE 版（写しだけ）
+
+`editions/unreal/files/` は、Unity 版の元になった Unreal Engine のリポジトリ kaedevn の部品の写し（`shared/SOURCE.md`）。入れる脚本は無く、この仕様の「2 つの版」には数えない。作りは Unity 版と同じ PowerShell で、上の表の Unity 版の列と違うのは次の所だけ。
+
+| 所 | UE 版 |
+|---|---|
+| 判定不能（3 章・4 章） | **実装している**（`Scripts/issue-run.ps1` の `Get-UndecidableReport` と `stop-hook.ps1`。Unity 版へ写すときの元にできる） |
+| リポジトリ | `-Repo` の既定が固定（Unity 版は `origin` から読む） |
+| 使用中の判定 | UE のエディタ・ビルドが PC で動いているか（同時 1 本） |
+| ログの置き場 | `Saved/IssueRun/` |
+| 記録の置き場 | Issue ごとに 1 本 `Docs/IssueRuns/issue-NNNN.md`（回ごとに下へ書き足す） |
+| BOM 無し UTF-8 の定義 | `Scripts/lib/text.ps1` を読む（Unity 版は脚本の中に書く） |
+| 確認コマンドが呼ぶもの | 決まったテストの入口は無い（確認コマンドがそのリポジトリの CLI のテストを呼ぶ。UE の組み立ては最終段階の Issue だけ） |
+
 ---
 
 ## 10. 見本

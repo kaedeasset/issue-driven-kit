@@ -1,0 +1,79 @@
+{
+  "$comment": "issue-run.ps1 が claude -p に --settings で渡す設定の元。{{STOP_HOOK}} は実行時に絶対パスへ、{{REPO}} は作業場所の POSIX 形（例 d/Unreal Projects/kaedevn-rpg）へ置き換える。対話のセッションには効かない。権限は狭めるだけ（deny）で広げない。CLAUDE.md と .claude/ の deny は //{{REPO}}/ の絶対パスで直下だけに効かせる（裸の CLAUDE.md・.claude/** はどの深さにも効き、製品の雛形 Templates/NewWork/ の CLAUDE.md と .claude/skills/〔配布物〕まで断って #15 が落ちた。2026-10-17 ユーザー判断で雛形は書けるようにした。gitignore の ! や ./ では外れないことを実測した）。説明は Docs/Guides/Working/issue-run.md の「止まらない仕組み」",
+  "env": {
+    "DISABLE_AUTOUPDATER": "1",
+    "BASH_DEFAULT_TIMEOUT_MS": "600000",
+    "BASH_MAX_TIMEOUT_MS": "5400000"
+  },
+  "permissions": {
+    "deny": [
+      "AskUserQuestion",
+      "EnterPlanMode",
+      "Edit(//{{REPO}}/CLAUDE.md)",
+      "Write(//{{REPO}}/CLAUDE.md)",
+      "Edit(//{{REPO}}/Server/kaede-rpg-server/CLAUDE.md)",
+      "Write(//{{REPO}}/Server/kaede-rpg-server/CLAUDE.md)",
+      "Edit(//{{REPO}}/.claude/**)",
+      "Write(//{{REPO}}/.claude/**)",
+      "Edit(//{{REPO}}/Docs/InSpecs/**)",
+      "Write(//{{REPO}}/Docs/InSpecs/**)",
+      "Bash(git push:*)",
+      "Bash(git worktree:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git reset:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)",
+      "Bash(git gc:*)",
+      "Bash(git config:*)",
+      "Bash(git remote:*)",
+      "Bash(git clean:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue close:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh release:*)",
+      "Bash(gh repo:*)",
+      "Bash(gh api:*)",
+      "Bash(rm:*)",
+      "Bash(taskkill:*)",
+      "PowerShell(git push:*)",
+      "PowerShell(git worktree:*)",
+      "PowerShell(git checkout:*)",
+      "PowerShell(git switch:*)",
+      "PowerShell(git reset:*)",
+      "PowerShell(git rebase:*)",
+      "PowerShell(git stash:*)",
+      "PowerShell(git gc:*)",
+      "PowerShell(git config:*)",
+      "PowerShell(git remote:*)",
+      "PowerShell(git clean:*)",
+      "PowerShell(gh issue comment:*)",
+      "PowerShell(gh issue edit:*)",
+      "PowerShell(gh issue close:*)",
+      "PowerShell(gh pr:*)",
+      "PowerShell(gh release:*)",
+      "PowerShell(gh repo:*)",
+      "PowerShell(gh api:*)",
+      "PowerShell(Remove-Item:*)",
+      "PowerShell(rm:*)",
+      "PowerShell(del:*)",
+      "PowerShell(Stop-Process:*)",
+      "PowerShell(kill:*)",
+      "PowerShell(taskkill:*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"{{STOP_HOOK}}\"",
+            "timeout": 3600
+          }
+        ]
+      }
+    ]
+  }
+}

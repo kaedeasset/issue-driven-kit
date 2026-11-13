@@ -6,6 +6,8 @@
 
 `editions/unity/files/` は、作者の Unity のリポジトリ KaedeScapeBuii（private）で動いた一式の写しで、正はそちらにある。キットの中では直さない。
 
+`editions/unreal/files/` は、作者の Unreal Engine のリポジトリ kaedevn（private）で動いている無人の回の部品 8 ファイルの写しで、正はそちらにある。キットの中では直さない。Unity 版の元になった実物で、入れる脚本は無い（写しだけ）。PC の中の個人のパスや秘密の値は元から無く、伏せた所は無い（元のコミットの中身と同じ）。
+
 ## 公開の前に抜いた物（2026-10-23）
 
 このリポジトリは公開なので、作者の private のリポジトリの中身は入れていない。
@@ -22,4 +24,5 @@
 | 元 | コミット | 写した日 | 写した物 |
 |---|---|---|---|
 | mkanakureon/KaedeScapeBuii（private） | fde14ae（説明書・設計書）・9ec9bcc（それ以外） | 2026-10-23 | `shared/manuals/`・`shared/reading/`・`docs/design/`・`editions/unity/files/` |
+| mkanakureon/kaedevn（private） | 173367ee | 2026-11-13 | `editions/unreal/files/`（`Scripts/issue-run.ps1`・`Scripts/lib/text.ps1`・`.claude/issue-run/` の 3 つ・Issue のひな形・`issue-run.md`・`issue-goal-setting.md`） |
 | キットの開発用のリポジトリ（private） | 9d35ab0 | 2026-10-23 | 全部（公開のリポジトリは、ここから 1 コミットで始めた） |

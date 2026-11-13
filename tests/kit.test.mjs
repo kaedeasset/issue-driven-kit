@@ -61,6 +61,32 @@ test('Unity 版の files/ には、一覧に無い物が入っていない', () 
   assert.deepEqual(extra, [], `一覧に無い: ${extra.join(', ')}`);
 });
 
+// UE 版は kaedevn（private）の写しだけ（入れる脚本は無い。shared/SOURCE.md）。一覧どおりにあること・余りが無いこと・
+// 仕様 3 章・4 章の判定不能を脚本と Stop hook の両方が持つことを見る（PowerShell の判定不能の実物はここにある。仕様 9.1）
+const unrealFiles = [
+  '.claude/issue-run/prompt.md', '.claude/issue-run/settings.json', '.claude/issue-run/stop-hook.ps1',
+  '.github/ISSUE_TEMPLATE/claude-run.md',
+  'Scripts/issue-run.ps1', 'Scripts/lib/text.ps1',
+  'Docs/Guides/Working/issue-run.md', 'Docs/Guides/Procedures/issue-goal-setting.md',
+];
+
+test('UE 版の files/ は一覧どおりで、余りが無い', () => {
+  const root = join(kit, 'editions/unreal/files');
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(join(d, e.name)) : [relative(root, join(d, e.name)).replaceAll('\\', '/')]);
+  assert.deepEqual(walk(root).sort(), [...unrealFiles].sort());
+});
+
+test('UE 版の脚本と Stop hook が、判定不能の報告を同じ決まりで見る', () => {
+  const head = '(?m)^[ \\t]*##[ \\t]*結果:[ \\t]*判定不能[ \\t]*$';
+  const section = '(?m)^[ \\t]*##[ \\t]*両立しない条件[ \\t]*$';
+  for (const f of ['Scripts/issue-run.ps1', '.claude/issue-run/stop-hook.ps1']) {
+    const text = read(`editions/unreal/files/${f}`);
+    assert.ok(text.includes(head), `${f} に「## 結果: 判定不能」の行の決まりが無い`);
+    assert.ok(text.includes(section), `${f} に節「## 両立しない条件」の決まりが無い`);
+  }
+  assert.match(read('editions/unreal/files/.claude/issue-run/prompt.md'), /## 結果: 合格 \/ 未合格 \/ 判定不能/);
+});
+
 test('共有の決まりが、各版の CLAUDE.md にそのまま入っている', () => {
   for (const block of ['shared/claude-md/principles.md', 'shared/claude-md/conventions.md']) {
     const text = read(block).trim();
