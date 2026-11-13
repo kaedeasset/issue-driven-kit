@@ -2,7 +2,7 @@
 
 ユーザーが書くもの・書き方・Issue への載せ方の正。無人で回す仕組みは `Docs/Guides/Working/issue-run.md`、回し方の中身（ゴール → 合格の条件 → 設計 → 実装 → テスト → 振り分け → 判定）は `.claude/skills/design-cycle/SKILL.md`。会話の中で Claude に作らせるなら `github-issue` スキル。
 
-kaedevn（UE）の同じ文書（2026-10-14）を Unity 向けに直した。違いは確認コマンドの入口（`Scripts/unity-test.ps1`）と 4.3 だけ。
+元の Unreal Engine のプロジェクトの同じ文書（2026-10-14）を Unity 向けに直した。違いは確認コマンドの入口（`Scripts/unity-test.ps1`）と 4.3 だけ。
 
 ## 0. 流れ
 
@@ -11,7 +11,7 @@ kaedevn（UE）の同じ文書（2026-10-14）を Unity 向けに直した。違
    ↓
 ② 文書を書く … 大きいものは設計書。小さいものは要らない
    ↓
-③ Issue を書く … 札（元の文書・合格の条件・確認コマンド）
+③ Issue を書く … 指示書（元の文書・合格の条件・確認コマンド）
    ↓
 ④ 試す … pwsh Scripts\issue-run.ps1 -DryRun
    ↓
@@ -61,7 +61,7 @@ kaedevn（UE）の同じ文書（2026-10-14）を Unity 向けに直した。違
 
 機械で測れない条件を入れると、Claude は自分で「合格」と書くしかなくなる。それが公式の言う一番の失敗（早すぎる勝利宣言）。
 
-AI の判定をさせたいときは、合否の外に置いて書く（kaedevn #101 の形）: 「AI の判定が要る条件（設計書 §0.2 の F2）は、報告の前に判定役（作った本人でない別のエージェント）にさせて、結果を報告に書く（合否には入れない）」。
+AI の判定をさせたいときは、合否の外に置いて書く（元のプロジェクトで使った形）: 「AI の判定が要る条件（設計書 §0.2 の F2）は、報告の前に判定役（作った本人でない別のエージェント）にさせて、結果を報告に書く（合否には入れない）」。
 
 ### 3.3 箇条書きと確認コマンドを対応させる
 
@@ -94,7 +94,7 @@ foreach ($h in '## 0. ゴールと合格の条件', '確認コマンド') {
 }
 
 # 例: 特定のテストが結果の中にあって通った（名前で 0 件にならないことも見る）
-pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter 'KaedeScapeBuii.Tests.PlayerMotorTests'
+pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter '<名前空間>.Tests.PlayerMotorTests'
 if ($LASTEXITCODE) { exit 1 }
 
 exit 0
@@ -103,11 +103,11 @@ exit 0
 - 落ちたときは `Write-Host` で理由を出す。その出力の末尾が Claude に渡り、次に何を直すかの手がかりになる。
 - 最後は `exit 0`。
 - 例の設計書・テストの名前は架空。実在のものに直して書く。
-- 先頭に `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` を置く（日本語の出力を読み違えない。kaedevn の Issue はほぼ全部これで始まる）。
-- 試しに作るもの（一時の作品・出力）は `Join-Path $env:TEMP "kaede-<名前>-$(Get-Random)"` か `Logs/` の下に作る。git の追跡物を作らない。
-- **「直す前と同じ結果」を確かめるとき**は、Issue を書いた時点のコミットを `git show <sha>:<パス>` で取り出して同じ入力で回し、出力を比べる（kaedevn #101）。
-- **大文字小文字だけの改名**（`Playermotor` → `PlayerMotor`）は Windows の `Test-Path` が区別しない。`git ls-files` の結果を `-ccontains`／`-cmatch` で比べる（kaedevn 10-14 の記事 §7-5）。
-- **確認コマンドそのものの誤りで、作る側をどう直しても通らない形になっていないか**を見る。kaedevn #10 は判定の 1 行が出力先の絶対パスに必ず当たり、#38 は試しの作品が空で必ず誤りを出していた。どちらも 4 回を使い切り、Issue の本文を直して出し直した。
+- 先頭に `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8` を置く（日本語の出力を読み違えない。元のプロジェクトの Issue はほぼ全部これで始まる）。
+- 試しに作るもの（一時の作品・出力）は `Join-Path $env:TEMP "issue-<名前>-$(Get-Random)"` か `Logs/` の下に作る。git の追跡物を作らない。
+- **「直す前と同じ結果」を確かめるとき**は、Issue を書いた時点のコミットを `git show <sha>:<パス>` で取り出して同じ入力で回し、出力を比べる（元のプロジェクトで使った形）。
+- **大文字小文字だけの改名**（`Playermotor` → `PlayerMotor`）は Windows の `Test-Path` が区別しない。`git ls-files` の結果を `-ccontains`／`-cmatch` で比べる（元のプロジェクトで 10-14 に分かった）。
+- **確認コマンドそのものの誤りで、作る側をどう直しても通らない形になっていないか**を見る。元のプロジェクトでは、判定の 1 行が出力先の絶対パスに必ず当たる Issue と、試しの作品が空で必ず誤りを出す Issue があった。どちらも 4 回を使い切り、Issue の本文を直して出し直した。
 
 ### 4.3 Unity でのテストの重さ
 
@@ -128,10 +128,10 @@ exit 0
 pwsh -NoProfile -File Scripts/unity-test.ps1
 ```
 
-- 守れるのは**ファイル単位**。フォルダを書いても守られない。フォルダごと変えさせたくないときは、確認コマンドの最後で `if (git status --porcelain -- <フォルダ>) { Write-Host '<フォルダ> を変えている'; exit 1 }` と見る（kaedevn #101）。
-- **直させるファイルは、確認コマンドの中で変数を通して指す**（`$tests = 'Assets/Tests/EditMode'` → `"$tests/PlayerMotorTests.cs"`）。パスをそのまま書くと自動で守られ、直せなくなる（kaedevn #26 の書き方。「直すべきファイルは変数で指す」とコメントを残す）。
+- 守れるのは**ファイル単位**。フォルダを書いても守られない。フォルダごと変えさせたくないときは、確認コマンドの最後で `if (git status --porcelain -- <フォルダ>) { Write-Host '<フォルダ> を変えている'; exit 1 }` と見る（元のプロジェクトで使った形）。
+- **直させるファイルは、確認コマンドの中で変数を通して指す**（`$tests = 'Assets/Tests/EditMode'` → `"$tests/PlayerMotorTests.cs"`）。パスをそのまま書くと自動で守られ、直せなくなる（元のプロジェクトで使った書き方。「直すべきファイルは変数で指す」とコメントを残す）。
 - **変数に入れるのはフォルダーまで**にする。`$man = 'Docs/…/manual.md'` のようにファイルのパスを丸ごと代入しても、そのパスは確認コマンドにそのまま書いてあるので守られる（説明書を直す Issue が 4 回とも合格できなかった）。
-- **作業で直す必要のあるファイルを「守る」に入れない。** kaedevn #7 は、旧い名前を消す作業なのに、その名前が残る設計書を守っていて、4 回とも合格できなかった。
+- **作業で直す必要のあるファイルを「守る」に入れない。** 元のプロジェクトでは、旧い名前を消す作業なのに、その名前が残る設計書を守っていて、4 回とも合格できなかった。
 - **テストの `.cs` を守る**のが Unity での要。守らないと、Claude がテストの期待値を実装に合わせて直せてしまう。テストそのものを書かせる Issue では、守らずに「既存のテストを消さない・弱めない」を条件に書き、件数を確認コマンドで見る。
 - どのファイルが守られるかは `-DryRun` の「守るファイル」に出る。作ったら `-DryRun` の「守るファイル」の行を**切らずに全部読み**、直させるファイルが 1 つも入っていないことを確かめる。
 - **deny のパス（直下の `CLAUDE.md`・`.claude/`・`Docs/InSpecs/`）は合格の条件に入れない。直す必要があれば人が直す。** 無人の回の設定（`.claude/issue-run/settings.json`）の deny が書き換えを断るので、何回回しても満たせない（公開のキットで、直下の `CLAUDE.md` の 1 行を消す条件が 4 回とも満たせず、人が直して合格した）。変えないことを確かめるために書くのはよい。`-DryRun` は、合格の条件（箇条書きと確認コマンド）に deny のパスに当たる語があれば「deny のパス: …」の行で知らせる（頭にフォルダーが付いた `Templates/NewWork/CLAUDE.md` などは当たらない）。
@@ -154,16 +154,16 @@ GitHub の「New issue」でひな形「Claude に無人で進めさせる」を
 
 - 1つの Issue に、確認コマンドで確かめる「終わりの状態」は1つか2つ。
 - 「設計書の §4 を全部」ではなく「§4.2 だけ」。
-- kaedevn の実測: 確認が重い段は約1時間、軽い段は約30分。7〜8時間なら 6〜8件、数時間なら 2〜3件を積む。前提でつないでおけば、途中で1件つまずいても後ろは前提待ちで止まるだけ。
+- 元のプロジェクトの実測: 確認が重い段は約1時間、軽い段は約30分。7〜8時間なら 6〜8件、数時間なら 2〜3件を積む。前提でつないでおけば、途中で1件つまずいても後ろは前提待ちで止まるだけ。
 
 ### 5.2 段を順につなぐ
 
 大きな作業を段に分けたら、2 段目から先の Issue に「## 前提」で前の段を書き、全部に `claude-run` を付けておく。番号の小さい順に回るので、1 段目が合格すると同じ実行の中で 2 段目が始まる。
 
 - 後の段の確認コマンドが「前の段と同じ結果か」を比べるなら、前の段に比べるための記録を機械で読める形（JSON）で残させる。
-- 前の段の Issue の最後に「## 次の段」を書いておくと、後で読むとき流れが分かる（スクリプトは読まない。kaedevn では 22 件が使った）。
-- 設計書を書く Issue の合格の条件に「実装を分けた束（K1・K2…）の一覧と、束ごとの確認コマンドの案」を入れておくと、2 回目以降の Issue がその束を 1 つずつ指せる（kaedevn #20 → #25〜#27「#20 の束 K2」）。テストの名前の表では、束は印の文（「（K2）」など）に混ぜず**「束」の列**に書かせる（見本は 6.2。列の値で絞れば、印の書き方の揺れを確認コマンドで吸わずに済む。公開のキットで `（K2）` と `（束 K2）` が揺れた）。
-- 人が手でやるもの（本番への配備・別の PC での確認など）も Issue にしてよいが、`claude-run` を付けない（kaedevn #17・#44）。
+- 前の段の Issue の最後に「## 次の段」を書いておくと、後で読むとき流れが分かる（スクリプトは読まない。元のプロジェクトでは 22 件が使った）。
+- 設計書を書く Issue の合格の条件に「実装を分けた束（K1・K2…）の一覧と、束ごとの確認コマンドの案」を入れておくと、2 回目以降の Issue がその束を 1 つずつ指せる（元のプロジェクトでは、設計書の Issue 1 件の後の 3 件が「設計書の Issue の束 K2」のように指した）。テストの名前の表では、束は印の文（「（K2）」など）に混ぜず**「束」の列**に書かせる（見本は 6.2。列の値で絞れば、印の書き方の揺れを確認コマンドで吸わずに済む。公開のキットで `（K2）` と `（束 K2）` が揺れた）。
+- 人が手でやるもの（本番への配備・別の PC での確認など）も Issue にしてよいが、`claude-run` を付けない（元のプロジェクトでも付けなかった）。
 
 ## 6. 例
 
@@ -210,7 +210,7 @@ Assets/InputSystem_Actions.inputactions（Player の Move・Jump・Sprint）
 ## 合格の条件
 - 設計書が Docs/Guides/Working/player-movement-design.md にある
 - §0 にゴール・合格の条件の表・実装の Issue に使う確認コマンドの案がある
-- テストの名前（`KaedeScapeBuii.Tests.<EditMode|PlayMode>.<クラス>.<メソッド>`）の一覧の表があり、見出しの行が `| 束 | テストの名前 | 何を確かめるか |` で始まる（束は「束」の列に書き、名前の文に混ぜない。名前はバッククォートで囲む）
+- テストの名前（`<名前空間>.Tests.<EditMode|PlayMode>.<クラス>.<メソッド>`）の一覧の表があり、見出しの行が `| 束 | テストの名前 | 何を確かめるか |` で始まる（束は「束」の列に書き、名前の文に混ぜない。名前はバッククォートで囲む）
 
 ```pwsh
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -218,7 +218,7 @@ $dir = 'Docs/Guides/Working'   # 書かせる文書はフォルダーを変数�
 $d = Join-Path $dir 'player-movement-design.md'
 if (-not (Test-Path $d)) { Write-Host '設計書が無い'; exit 1 }
 $t = Get-Content $d -Raw -Encoding utf8
-foreach ($h in '## 0.', 'ゴール', '合格の条件', '確認コマンド', 'KaedeScapeBuii.Tests.') {
+foreach ($h in '## 0.', 'ゴール', '合格の条件', '確認コマンド', '<名前空間>.Tests.') {
     if ($t -notmatch [regex]::Escape($h)) { Write-Host "無い: $h"; exit 1 }
 }
 if ($t -notmatch '(?m)^\| *束 *\| *テストの名前 *\| *何を確かめるか *\|') { Write-Host 'テストの名前の表に「束」の列が無い'; exit 1 }
@@ -233,9 +233,9 @@ exit 0
 
 | 束 | テストの名前 | 何を確かめるか |
 |---|---|---|
-| K1 | `KaedeScapeBuii.Tests.EditMode.PlayerMotorTests.WalkSpeedMatchesTable` | 歩く速さ |
-| K1 | `KaedeScapeBuii.Tests.EditMode.PlayerMotorTests.SprintIsFasterThanWalk` | 走る速さ |
-| K2 | `KaedeScapeBuii.Tests.EditMode.PlayerMotorTests.JumpIgnoredInAir` | 空中で跳ばない |
+| K1 | `<名前空間>.Tests.EditMode.PlayerMotorTests.WalkSpeedMatchesTable` | 歩く速さ |
+| K1 | `<名前空間>.Tests.EditMode.PlayerMotorTests.SprintIsFasterThanWalk` | 走る速さ |
+| K2 | `<名前空間>.Tests.EditMode.PlayerMotorTests.JumpIgnoredInAir` | 空中で跳ばない |
 
 ### 6.3 大きい・2回目 — 実装する
 
@@ -260,7 +260,7 @@ Docs/Guides/Working/player-movement-design.md の束 K2
 # 守る: Docs/Guides/Working/player-movement-design.md
 # テストの名前は設計書の表から読む（Issue に写さない。表が正）。「束」の列の値で行を絞る
 $t = Get-Content 'Docs/Guides/Working/player-movement-design.md' -Raw -Encoding utf8
-$rows = [regex]::Matches($t, '(?m)^\| *([^|`]+?) *\| *`(KaedeScapeBuii\.Tests\.(?:EditMode|PlayMode)\.\w+\.\w+)` *\|')
+$rows = [regex]::Matches($t, '(?m)^\| *([^|`]+?) *\| *`(<名前空間>\.Tests\.(?:EditMode|PlayMode)\.\w+\.\w+)` *\|')
 $names = @($rows | Where-Object { $_.Groups[1].Value -eq 'K2' } | ForEach-Object { $_.Groups[2].Value })
 # 本数は Issue を書く人が設計書の表を数えて書く（12 は束 K2 の行の数。> 0 にしない。読めなかった名前は下で確かめられない）
 if ($names.Count -ne 12) { Write-Host "表から読めた束 K2 の名前が $($names.Count) 本（12 本のはず）"; exit 1 }
@@ -281,11 +281,11 @@ exit 0
 - 操作感の判定（後でユーザーが触って決める）
 ````
 
-例の束 K2 は EditMode のテストだけ。PlayMode のテストも入る束は `-Platform All` で回し、名前の 3 つ目（`EditMode`・`PlayMode`）で `<…>-results.xml` を選ぶ（#17 の確認コマンドと同じ読み方）。
+例の束 K2 は EditMode のテストだけ。PlayMode のテストも入る束は `-Platform All` で回し、名前の 3 つ目（`EditMode`・`PlayMode`）で `<…>-results.xml` を選ぶ（元のプロジェクトの確認コマンドと同じ読み方）。
 
 設計書を「守る」に入れると、Claude は実装の都合で設計書を書き換えられない。設計を変えたくなったら合格にならず、報告の「やらなかったこと」に理由が残る（設計の直しはユーザーが決める）。
 
-## 7. 札を付ける前の確かめ
+## 7. ラベルを付ける前の確かめ
 
 - [ ] やることが1文で、90 分 × 4 回で終わる大きさ
 - [ ] 元の文書のパスが実在する
@@ -312,18 +312,18 @@ exit 0
    - テストが全部 `BLOCKED` → その作業場所を Unity で開いていた。閉じてやり直す
    - 「最後の返答」が `You've hit your session limit` → 中身の不合格ではない。条件を変えずに `claude-failed` を外して出し直す
    - 権限で断られて 1 か所だけ書けなかった → 報告に用意された中身を手で入れてコミットし、出し直すか手で閉じる
-   - 直したらラベル `claude-failed` を外す。**何を直したか・条件を変えたかをコメントに残す**（kaedevn の形: 「## 対応（日時・ユーザーのセッションから）」に、直したこと・「本文の合格の条件は変えない」・次にどうするか）
+   - 直したらラベル `claude-failed` を外す。**何を直したか・条件を変えたかをコメントに残す**（元のプロジェクトの形: 「## 対応（日時・ユーザーのセッションから）」に、直したこと・「本文の合格の条件は変えない」・次にどうするか）
 4. 閉じるときは「合格（claude-done）を確認して閉じる（YYYY-MM-DD ユーザー指示）」とコメントしてから閉じる
 5. 「未採用の改善」に良いものがあれば、新しい Issue にする（自動では仕事にならない）
 
-## 9. kaedevn の 109 件から分かったこと（2026-10-22 に読んだ）
+## 9. 元のプロジェクトの 109 件から分かったこと（2026-10-22 に読んだ）
 
 | 何が起きたか | 件数・例 | ここでの手当て |
 |---|---|---|
 | 1 回で合格 | ほとんど。8〜30 分が多い | — |
-| 利用上限で 2〜4 回目を 0 分で使い切った | #21・#31・#32・#35・#39 | `issue-run.ps1` が上限を JSON で見分けて待つ（直した版を持ってきた）。起きたら 8 章の 3 |
-| deny が広すぎて、作る物の中の CLAUDE.md・スキルが書けなかった | #15・#33・#34・#38・#40 | deny はリポジトリ直下の `CLAUDE.md` と `.claude/` だけ（`.claude/issue-run/settings.json`）。作る物に同じ名前のファイルがあるなら Issue に書いておく |
-| 守るファイルの中に、直す必要のある記述があった | #7 | 4.4「作業で直す必要のあるファイルを守らない」 |
-| 確認コマンドの誤りで、作る側では通らない | #10・#38 | 4.2 の最後・7 章「落ちる理由が正しいこと」 |
-| 無人の認証が切れて始まらなかった | #9 | `issue-run.md` の準備 3（`claude setup-token`） |
-| 合格の条件どうしが両立せず、4 回を使い切った | キットの利用先（rpg-online-cloudflare #43。109 件の外） | 報告の「判定不能」（`issue-run.md`）。2026-11-13 にキットから取り込んだ |
+| 利用上限で 2〜4 回目を 0 分で使い切った | — | `issue-run.ps1` が上限を JSON で見分けて待つ（直した版を持ってきた）。起きたら 8 章の 3 |
+| deny が広すぎて、作る物の中の CLAUDE.md・スキルが書けなかった | — | deny はリポジトリ直下の `CLAUDE.md` と `.claude/` だけ（`.claude/issue-run/settings.json`）。作る物に同じ名前のファイルがあるなら Issue に書いておく |
+| 守るファイルの中に、直す必要のある記述があった | — | 4.4「作業で直す必要のあるファイルを守らない」 |
+| 確認コマンドの誤りで、作る側では通らない | — | 4.2 の最後・7 章「落ちる理由が正しいこと」 |
+| 無人の認証が切れて始まらなかった | — | `issue-run.md` の準備 3（`claude setup-token`） |
+| 合格の条件どうしが両立せず、4 回を使い切った | — | 報告の「判定不能」（`issue-run.md`）。2026-11-13 にキットから取り込んだ |

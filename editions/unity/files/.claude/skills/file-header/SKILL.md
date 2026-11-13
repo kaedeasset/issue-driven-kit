@@ -2,9 +2,9 @@
 description: Use when adding or fixing the summary comment at the top of a C# source file, and always when creating a new .cs file. Triggers on "ヘッダーコメントを追加して", "ファイルの概要を書いて", "このファイルにヘッダーを".
 ---
 
-# ファイルヘッダー Skill（Unity / KaedeScapeBuii 用）
+# ファイルヘッダー Skill（Unity 用）
 
-C# のソースファイルの先頭に「このファイルは何か」の概要コメントを付ける。kaedevn（UE）の file-header と同じ考え方。
+C# のソースファイルの先頭に「このファイルは何か」の概要コメントを付ける。元の Unreal Engine のプロジェクトの file-header と同じ考え方。
 
 ## トリガー
 
@@ -34,7 +34,7 @@ for f in $(git ls-files 'Assets/*.cs'); do
 done
 ```
 
-作業前に数え、対象を確定してから始める（kaedevn で「先頭行がコメントか」で数えて誤報告した）。
+作業前に数え、対象を確定してから始める（元のプロジェクトで「先頭行がコメントか」で数えて誤報告した）。
 既に十分な説明があるファイルは触らない。他人（別モデル・人間）が書いた説明に自分の署名を足さない。書き直すのは、説明が**間違っている**ときだけ。
 
 ## 書式

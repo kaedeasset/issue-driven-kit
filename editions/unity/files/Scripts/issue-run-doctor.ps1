@@ -57,7 +57,7 @@ else {
 $claude = Find-Exe 'claude' @("$env:USERPROFILE\.local\bin\claude.exe")
 if ($claude) { Report 'OK' 'claude' (& $claude --version) } else { Report 'NG' 'claude' 'Claude Code が無い（https://code.claude.com の手順で入れる）' }
 if ([Environment]::GetEnvironmentVariable('CLAUDE_CODE_OAUTH_TOKEN', 'User') -or $env:CLAUDE_CODE_OAUTH_TOKEN) { Report 'OK' '長期トークン' 'CLAUDE_CODE_OAUTH_TOKEN がある' }
-else { Report 'WARN' '長期トークン' "CLAUDE_CODE_OAUTH_TOKEN が無い。無人の claude -p は対話のログインと別に切れることがある（kaedevn 2026-10-14 #9）→ claude setup-token → [Environment]::SetEnvironmentVariable('CLAUDE_CODE_OAUTH_TOKEN','<トークン>','User')" }
+else { Report 'WARN' '長期トークン' "CLAUDE_CODE_OAUTH_TOKEN が無い。無人の claude -p は対話のログインと別に切れることがある（元のプロジェクトで 2026-10-14 に切れた）→ claude setup-token → [Environment]::SetEnvironmentVariable('CLAUDE_CODE_OAUTH_TOKEN','<トークン>','User')" }
 
 # --- 作業場所 ---
 if ($git) {
@@ -100,7 +100,7 @@ else {
         $need = 'AskUserQuestion', 'Bash(git push:*)', 'PowerShell(git push:*)', 'Edit(//{{REPO}}/CLAUDE.md)', 'Write(//{{REPO}}/.claude/**)', 'Edit(//{{REPO}}/Docs/InSpecs/**)', 'Write(//{{REPO}}/Docs/InSpecs/**)'
         $lack = @($need | Where-Object { $deny -notcontains $_ })
         if ($lack.Count) { Report 'NG' '設定' ("deny に無い: {0}" -f ($lack -join ', ')) }
-        elseif ($deny -contains 'Edit(CLAUDE.md)' -or $deny -contains 'Edit(**/CLAUDE.md)') { Report 'NG' '設定' '裸の CLAUDE.md の deny がある（どの深さにも効き、作る物の中の CLAUDE.md まで断る。kaedevn 997ad26f）' }
+        elseif ($deny -contains 'Edit(CLAUDE.md)' -or $deny -contains 'Edit(**/CLAUDE.md)') { Report 'NG' '設定' '裸の CLAUDE.md の deny がある（どの深さにも効き、作る物の中の CLAUDE.md まで断る。元のプロジェクトで実際に断られた）' }
         elseif ($raw -notmatch '\{\{STOP_HOOK\}\}') { Report 'NG' '設定' 'Stop hook の {{STOP_HOOK}} が無い' }
         else { Report 'OK' '設定' "deny $($deny.Count) 個・Stop hook・env $(@($s.env.PSObject.Properties).Count) 個" }
     } catch { Report 'NG' '設定' "JSON として読めない: $($_.Exception.Message)" }

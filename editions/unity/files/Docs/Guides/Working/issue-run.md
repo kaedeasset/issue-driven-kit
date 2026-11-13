@@ -1,10 +1,10 @@
 # Issue を無人の Claude に進めさせる（issue-run）
 
-GitHub Issue に札を付けておくと、`Scripts/issue-run.ps1` が1件ずつ新しい Claude Code（`claude -p`・auto mode）を起動し、**Issue の合格の条件を満たすまで**設計・実装・テストを回させる。自分が Unity で開いていない作業場所（worktree）を選んで起動し、終わったら確認する。
+GitHub Issue にラベルを付けておくと、`Scripts/issue-run.ps1` が1件ずつ新しい Claude Code（`claude -p`・auto mode）を起動し、**Issue の合格の条件を満たすまで**設計・実装・テストを回させる。自分が Unity で開いていない作業場所（worktree）を選んで起動し、終わったら確認する。
 
-kaedevn（UE）の issue-run をそのまま持ってきた（2026-10-22）。kaedevn での検討と実測は kaedevn の `Docs/Reports/2026/10/14/03`・`04` と `Docs/Guides/Working/issue-run.md`。変えたのは次の 3 点だけ。
+元は Unreal Engine のプロジェクトの仕組み（2026-10-22 に持ってきた）。検討と実測は元のプロジェクトの記録と手引きにある。変えたのは次の 3 点だけ。
 
-| 点 | kaedevn（UE） | ここ（Unity） |
+| 点 | 元のプロジェクト（UE） | ここ（Unity） |
 |---|---|---|
 | リポジトリ | `-Repo` の既定が固定 | 作業場所の `origin` から読む |
 | ログ | `Saved/IssueRun/` | `Logs/IssueRun/`（追跡しない） |
@@ -12,7 +12,7 @@ kaedevn（UE）の issue-run をそのまま持ってきた（2026-10-22）。ka
 
 ## 考え方
 
-- **設計の正はリポジトリの文書。** Issue は「どの文書のどこを、どの合格の条件まで」の札。設計そのものを Issue に書かない（CLAUDE.md 原則6）。
+- **設計の正はリポジトリの文書。** Issue は「どの文書のどこを、どの合格の条件まで」の指示書。設計そのものを Issue に書かない（CLAUDE.md 原則6）。
 - **合格の条件と確認コマンドが必須。** どちらかが無い Issue は起動しない。公式も「決まった判定が一番強い」「一番の失敗は早すぎる勝利宣言」としている。
 - **判定に使うファイルは変えさせない。** 確認コマンドに出てくるリポジトリのファイル（テストのスクリプト・テストの `.cs` 等）は、開始時の中身から変わっていたら合格にしない。
 - **決定待ちで止まらない。** 書いていない決定は Claude が「git で戻せて範囲が小さいほう」を選び、選んだことと戻し方を報告に書く（CLAUDE.md 原則1）。
@@ -25,7 +25,7 @@ kaedevn（UE）の issue-run をそのまま持ってきた（2026-10-22）。ka
 | Claude が区切りで返答を終える（`-p` はそこで終わる） | **Stop hook**（`.claude/issue-run/stop-hook.ps1`）。報告ファイルが「## 結果: 合格」・判定に使うファイルが開始時のまま、の2つがそろうまで返答を終えさせない（押し返しは合計30回）。終わったら、スクリプトが確認コマンドを **1 回だけ**回し、落ちていれば出力を付けて同じ会話を `--resume` で再開する（最大 `-MaxRounds` 回） |
 | 確認の画面が出る | CLI の `--permission-prompts none`。確認は出ずに断られ、エラーが Claude に返るだけ |
 | 質問する | `--disallowed-tools AskUserQuestion` と deny |
-| 承認の要る操作（削除・プロセス停止・push・Issue への書き込み・直下の CLAUDE.md・`.claude/`・`Docs/InSpecs/`（人が書く文書の置き場）の書き換え・履歴の書き換え） | 設定の **deny** で必ず断る。指示文にも代わりのやり方を書いてある。CLAUDE.md・`.claude/`・`Docs/InSpecs/` の deny は `Edit(//{{REPO}}/CLAUDE.md)` の**絶対パス**で書き、スクリプトが `{{REPO}}` を作業場所の POSIX 形（`c/Users/<you>/Documents/UnityProject/KaedeScapeBuii`）に置き換える。裸の `CLAUDE.md`・`.claude/**` は gitignore の規則で**どの深さにも**効き、作る物の中の CLAUDE.md やスキルまで断る（kaedevn #15・#33・#34・#38・#40。10-16 に「直下だけに狭めた」つもりの書き方は効いておらず、10-17 にこの形にして実測で確かめた） |
+| 承認の要る操作（削除・プロセス停止・push・Issue への書き込み・直下の CLAUDE.md・`.claude/`・`Docs/InSpecs/`（人が書く文書の置き場）の書き換え・履歴の書き換え） | 設定の **deny** で必ず断る。指示文にも代わりのやり方を書いてある。CLAUDE.md・`.claude/`・`Docs/InSpecs/` の deny は `Edit(//{{REPO}}/CLAUDE.md)` の**絶対パス**で書き、スクリプトが `{{REPO}}` を作業場所の POSIX 形（`c/work/<プロジェクト>`）に置き換える。裸の `CLAUDE.md`・`.claude/**` は gitignore の規則で**どの深さにも**効き、作る物の中の CLAUDE.md やスキルまで断る（元のプロジェクトで 5 件の Issue が落ちた。10-16 に「直下だけに狭めた」つもりの書き方は効いておらず、10-17 にこの形にして実測で確かめた） |
 | コマンドが10分で時間切れ | 設定の env `BASH_MAX_TIMEOUT_MS`（90分） |
 | 実行中に Claude Code が更新される | 設定の env `DISABLE_AUTOUPDATER` |
 | 認証切れ・利用上限 | 起動前の点検で止める・上限は待ってやり直す |
@@ -61,7 +61,7 @@ kaedevn（UE）の issue-run をそのまま持ってきた（2026-10-22）。ka
    gh auth login
    ```
 2. git と GitHub のリポジトリ（`origin`）を用意する（`Docs/Guides/Working/github-repo.md`）。
-3. 無人の `claude -p` は対話のログインと別に認証が切れることがある（kaedevn 2026-10-14 に `OAuth session expired` で落ちた）。長期のトークンを作って環境変数に入れる:
+3. 無人の `claude -p` は対話のログインと別に認証が切れることがある（元のプロジェクトで 2026-10-14 に `OAuth session expired` で落ちた）。長期のトークンを作って環境変数に入れる:
    ```powershell
    claude setup-token
    [Environment]::SetEnvironmentVariable('CLAUDE_CODE_OAUTH_TOKEN', '<表示されたトークン>', 'User')
@@ -72,9 +72,9 @@ kaedevn（UE）の issue-run をそのまま持ってきた（2026-10-22）。ka
 ## 起動
 
 ```powershell
-pwsh Scripts\issue-run.ps1                    # 札の付いた Issue を全部、順に
+pwsh Scripts\issue-run.ps1                    # ラベルの付いた Issue を全部、順に
 pwsh Scripts\issue-run.ps1 -Issue 12          # 1件だけ
-pwsh Scripts\issue-run.ps1 -WorkDir 'C:\Users\<you>\Documents\UnityProject\KaedeScapeBuii-wt2'   # 作業場所を指定
+pwsh Scripts\issue-run.ps1 -WorkDir 'C:\work\<プロジェクト>-wt2'   # 作業場所を指定
 ```
 
 | 引数 | 既定 | 意味 |
@@ -100,7 +100,7 @@ pwsh Scripts\issue-run.ps1 -WorkDir 'C:\Users\<you>\Documents\UnityProject\Kaede
 読み方と、合格しなかったときの直し方は `Docs/Guides/Procedures/issue-goal-setting.md` の 8 章。
 
 1. `Docs/Reports/YYYY/MM/DD/NN-issue-run.md` — 合格しなかった → 合格した、の順のまとめ
-2. 各 Issue のコメント — 1 行目に結果・**かかった分と開始〜終了の時刻**（分の単位。例 `6 分（2026-10-22 09:36〜09:42）`。始まりは「実行中」の札を付けた直後、終わりは合否が決まった時。起動前の点検は含まない）・回数・コミットの数・作業場所・`HEAD`。続いて合格の条件ごとの判定表・やったこと・コミット・**選んだこと（Claude が自分で決めた点と戻し方）**・やらなかったこと・未採用の改善
+2. 各 Issue のコメント — 1 行目に結果・**かかった分と開始〜終了の時刻**（分の単位。例 `6 分（2026-10-22 09:36〜09:42）`。始まりは「実行中」のラベルを付けた直後、終わりは合否が決まった時。起動前の点検は含まない）・回数・コミットの数・作業場所・`HEAD`。続いて合格の条件ごとの判定表・やったこと・コミット・**選んだこと（Claude が自分で決めた点と戻し方）**・やらなかったこと・未採用の改善
 3. 合格したものは確認して閉じ、push する
 4. 中身のログは `Logs/IssueRun/<日時>/`
 

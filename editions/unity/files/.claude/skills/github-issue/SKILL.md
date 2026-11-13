@@ -4,7 +4,7 @@ description: Use when the user asks to create, write, list, check, or run GitHub
 
 # GitHub Issue Skill（作る・確かめる・無人で回す）
 
-Issue は「どの文書のどこを、どの合格の条件まで」の札。設計は Issue に書かずリポジトリの文書に書く（CLAUDE.md 原則6）。
+Issue は「どの文書のどこを、どの合格の条件まで」の指示書。設計は Issue に書かずリポジトリの文書に書く（CLAUDE.md 原則6）。
 **書き方の正は `Docs/Guides/Procedures/issue-goal-setting.md`、仕組みの正は `Docs/Guides/Working/issue-run.md`。** ここは手順だけ。ルールを書き足さない。
 
 ## 前提（毎回）
@@ -18,12 +18,12 @@ Issue は「どの文書のどこを、どの合格の条件まで」の札。�
 2. **元の文書を確かめる。** 指すパスと節が実在すること。無ければ先に設計書を書く（`design-cycle`）か、設計書を書く Issue にする。
 3. **ゴールを 1 文**（誰が・何を見て・どう判断するか）。
 4. **合格の条件**: 機械で測れるものだけ。箇条書きの 1 行ずつが確認コマンドのどこかで確かめられること。見た目・面白さは「やらないこと」へ。
-5. **確認コマンド**（```pwsh）: ふつうは `pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter '<名前空間.クラス>'` と、その Issue だけの確かめ。kaedevn の書き方（issue-goal-setting.md 4.2・4.4）に合わせる:
+5. **確認コマンド**（```pwsh）: ふつうは `pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter '<名前空間.クラス>'` と、その Issue だけの確かめ。元のプロジェクトの書き方（issue-goal-setting.md 4.2・4.4）に合わせる:
    - 先頭に `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8`
    - 変えさせないファイルは `# 守る: <パス>`、**直させるファイルは変数を通して指す**（そのまま書くと自動で守られて直せない）。作業で直す所のあるファイルは守らない
    - フォルダごと変えさせないなら最後に `git status --porcelain -- <フォルダ>` を見る
    - 落ちるときは `Write-Host` で理由を出し、最後は `exit 0`
-6. **確認コマンドを自分で 1 回回して、いま落ちる（まだできていない）ことと、落ちる理由が「まだ作っていないから」であることを見る。** 最初から通るならゴールが書けていない。確認コマンド自身の誤りで落ちるなら直す（kaedevn #10・#38 はこれで 4 回を使い切った）。エディタが開いていて `BLOCKED` なら、その旨を下書きに書いてユーザーに渡す。
+6. **確認コマンドを自分で 1 回回して、いま落ちる（まだできていない）ことと、落ちる理由が「まだ作っていないから」であることを見る。** 最初から通るならゴールが書けていない。確認コマンド自身の誤りで落ちるなら直す（元のプロジェクトでは、これで 4 回を使い切った Issue が 2 件あった）。エディタが開いていて `BLOCKED` なら、その旨を下書きに書いてユーザーに渡す。
 7. 本文を `Logs/IssueDrafts/<題>.md` に書き、ユーザーに見せる（ひな形 `.github/ISSUE_TEMPLATE/claude-run.md` の欄どおり）。
 8. 「作って」と言われていれば作る:
    ```powershell
@@ -48,12 +48,12 @@ gh issue view <番号> --comments
 1. `pwsh Scripts\issue-run.ps1 -DryRun` を回し、対象・条件・守るファイルを報告する。
 2. 本番はユーザーが別のターミナルで起動するよう、コマンドを渡す:
    ```powershell
-   pwsh Scripts\issue-run.ps1                 # 札の付いた Issue を全部、順に
+   pwsh Scripts\issue-run.ps1                 # ラベルの付いた Issue を全部、順に
    pwsh Scripts\issue-run.ps1 -Issue 12       # 1 件だけ
    ```
    作業場所は、ユーザーが Unity で開いていない worktree を選ぶ（開いているとテストが BLOCKED になる）。
 3. 終わったら `Docs/Reports/YYYY/MM/DD/NN-issue-run.md` と各 Issue のコメントを読み、結果を報告する（閉じる・push はユーザー）。
-4. 合格しなかったものは、理由ごとの直し方（issue-goal-setting.md 8 章）を示す。ユーザーが「閉じて」「出し直して」と言ったら、kaedevn と同じ形のコメント（「合格（claude-done）を確認して閉じる（YYYY-MM-DD ユーザー指示）」・「## 対応（日時）」）を付けてから閉じる／`claude-failed` を外す。
+4. 合格しなかったものは、理由ごとの直し方（issue-goal-setting.md 8 章）を示す。ユーザーが「閉じて」「出し直して」と言ったら、決まった形のコメント（「合格（claude-done）を確認して閉じる（YYYY-MM-DD ユーザー指示）」・「## 対応（日時）」）を付けてから閉じる／`claude-failed` を外す。
 
 ## やらないこと
 

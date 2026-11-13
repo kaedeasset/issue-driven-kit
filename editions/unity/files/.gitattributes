@@ -1,4 +1,4 @@
-# 改行コードの規則（kaedevn 2026-09-15 と同じ）。git の中身は LF、ディスク上も LF に揃える。
+# 改行コードの規則（元の Unreal Engine のプロジェクトと同じ）。git の中身は LF、ディスク上も LF に揃える。
 # 例外は Windows のバッチだけ（CRLF でないとラベルやジャンプが誤動作する）。
 * text=auto eol=lf
 *.bat text eol=crlf

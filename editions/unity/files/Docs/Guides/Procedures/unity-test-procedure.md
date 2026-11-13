@@ -8,8 +8,8 @@
 pwsh -NoProfile -File Scripts/unity-test.ps1                       # EditMode を全部
 pwsh -NoProfile -File Scripts/unity-test.ps1 -Platform PlayMode    # PlayMode を全部
 pwsh -NoProfile -File Scripts/unity-test.ps1 -Platform All         # 両方（回帰テスト）
-pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter 'KaedeScapeBuii.Tests.SmokeTests'           # 1 クラス
-pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter 'KaedeScapeBuii.Tests.SmokeTests.TestRunnerWorks'   # 1 本
+pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter '<名前空間>.Tests.SmokeTests'           # 1 クラス
+pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter '<名前空間>.Tests.SmokeTests.TestRunnerWorks'   # 1 本
 pwsh -NoProfile -File Scripts/unity-test.ps1 -CompileOnly          # コンパイルだけ
 ```
 
@@ -33,11 +33,11 @@ pwsh -NoProfile -File Scripts/unity-test.ps1 -CompileOnly          # コンパ�
 
 | 何を | どこ | アセンブリ |
 | --- | --- | --- |
-| ふつうの C# のロジック（速い・まずここ） | `Assets/Tests/EditMode/` | `KaedeScapeBuii.Tests.EditMode`（Editor のみ・`UNITY_INCLUDE_TESTS`） |
-| シーン・物理・フレーム・入力 | `Assets/Tests/PlayMode/`（作るときに asmdef も） | `KaedeScapeBuii.Tests.PlayMode` |
+| ふつうの C# のロジック（速い・まずここ） | `Assets/Tests/EditMode/` | `<名前空間>.Tests.EditMode`（Editor のみ・`UNITY_INCLUDE_TESTS`） |
+| シーン・物理・フレーム・入力 | `Assets/Tests/PlayMode/`（作るときに asmdef も） | `<名前空間>.Tests.PlayMode` |
 
 - テストするゲームのコードは asmdef に入れ、テストの asmdef の `references` に足す（asmdef に入っていない `Assembly-CSharp` はテストのアセンブリから参照できない）。
-- 名前空間は `KaedeScapeBuii.Tests`。`-Filter` はこの名前で絞る。
+- 名前空間は `<名前空間>.Tests`。`-Filter` はこの名前で絞る。
 
 ## 注意
 

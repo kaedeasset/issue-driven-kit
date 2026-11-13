@@ -2,11 +2,11 @@
 description: Use when the user asks to save a report, document, summary, capture log, or scene-setup memo for this Unity project to Docs/Reports/. Triggers on "レポート書いて", "保存して", "振り返り文書", "まとめを書いて", "ドキュメント保存", "撮影記録を残して", "シーン設定をメモして".
 ---
 
-# レポート保存 Skill（Unity / KaedeScapeBuii 用）
+# レポート保存 Skill（Unity 用）
 
 作業の振り返り・設計文書・調査結果・**撮影手順やシーン設定のメモ**などを `Docs/Reports/` に保存する。
 
-このプロジェクトは Unity 6 の C# プロジェクト。文書は Unity が取り込まない `Docs/` 配下に置く（`Assets/` に置くと取り込まれ `.meta` ができる）。kaedevn（UE）の save-report と同じ規則。
+このプロジェクトは Unity 6 の C# プロジェクト。文書は Unity が取り込まない `Docs/` 配下に置く（`Assets/` に置くと取り込まれ `.meta` ができる）。元の Unreal Engine のプロジェクトの save-report と同じ規則。
 
 ## 保存先ルール
 
@@ -19,7 +19,7 @@ Docs/Reports/{年}/{月}/{日}/{連番}-{タイトル}.md
 - **年月日**: 今日の日付を使う（`YYYY/MM/DD`、ゼロ埋め）
 - **連番**: その日のフォルダ内の**最大の番号 + 1**（ゼロ埋め2桁）。
   **ファイル数ではなく最大値で決める**——欠番があると数え方では衝突する。
-  **書く直前に `ls` する。** kaedevn で 2026-08-19 に別セッションと同じ日に書いて3回ぶつかった
+  **書く直前に `ls` する。** 元のプロジェクトで 2026-08-19 に別セッションと同じ日に書いて3回ぶつかった
   （04・06・08・11）。番号は早い者勝ちに見えて、**連番でひとつの話になっている側を崩さない**のが優先。
   ぶつかったら、単独の文書のほうを空き番号へ動かす（`git mv` で履歴を繋ぐ）。
 - **タイトル**: 英語ケバブケース、内容を簡潔に表す
@@ -106,7 +106,7 @@ Docs/Reports/{年}/{月}/{日}/{連番}-{タイトル}.md
 generated_by: Claude {現在のモデル名}
 date: {YYYY-MM-DD}
 type: {report | spec | plan | guide | status | reference | capture | scene}
-project: KaedeScapeBuii
+project: <リポジトリの名前>
 ---
 
 # タイトル
@@ -144,7 +144,7 @@ project: KaedeScapeBuii
 | `generated_by` | `Claude {現在のモデル名}` | 生成したモデル名（例: `Claude Opus 5.5`） |
 | `date` | `YYYY-MM-DD` | 生成日 |
 | `type` | サフィックスに対応する種別 | `report`, `spec`, `plan`, `guide`, `status`, `reference`, `capture`, `scene` のいずれか |
-| `project` | `KaedeScapeBuii` | 固定値 |
+| `project` | `<リポジトリの名前>` | `git remote get-url origin` の最後の名前 |
 
 ### フッター（署名ブロック）— 必須
 

@@ -2,9 +2,9 @@
 description: Use when the user asks to sync the git worktree lanes with main (morning integration). Triggers on "レーン同期して", "レーン同期", "朝の同期", "レーンを同期して", "各レーンをmainに入れて", "/lane-sync".
 ---
 
-# レーン同期 Skill（KaedeScapeBuii / 統合セッション = main）
+# レーン同期 Skill（統合セッション = main）
 
-各レーン（worktree のブランチ）を main に入れ、その main を各レーンに入れる。**ふつうは朝に 1 回、main の worktree から。** kaedevn の lane-sync と同じ手順で、Unity 向けに `next` の中身だけ変えた。
+各レーン（worktree のブランチ）を main に入れ、その main を各レーンに入れる。**ふつうは朝に 1 回、main の worktree から。** 元の Unreal Engine のプロジェクトの lane-sync と同じ手順で、Unity 向けに `next` の中身だけ変えた。
 
 起動語は **「レーン同期して」**。「朝の同期」「レーンを同期」も同じ。
 
@@ -14,7 +14,7 @@ description: Use when the user asks to sync the git worktree lanes with main (mo
 
 ## 前提（守るもの）
 
-- **main の worktree（`C:\Users\<you>\Documents\UnityProject\KaedeScapeBuii`）で動く。** レーンのセッションからは実行しない（セッションは自分の worktree から出ない）。
+- **main の worktree（`C:\work\<プロジェクト>`）で動く。** レーンのセッションからは実行しない（セッションは自分の worktree から出ない）。
 - **`git worktree add` / `remove` はしない。** レーンを作る・消すのは人（`worktree-lanes.md` の「レーンを作る」）。
 - **レーンの worktree が汚れていたら、そのレーンは触らない。** レーンの未コミットはレーンのセッションの仕事。勝手にコミットも stash もしない。
 - **Unity エディタを止めない・閉じない。** エディタが開いているレーンも同期してよい（エディタ側で取り込み直しが走る）。
@@ -25,7 +25,7 @@ description: Use when the user asks to sync the git worktree lanes with main (mo
 ### 1. main の未コミットを片づける
 
 ```powershell
-cd "C:\Users\<you>\Documents\UnityProject\KaedeScapeBuii"
+cd "C:\work\<プロジェクト>"
 git status --short
 git diff
 ```

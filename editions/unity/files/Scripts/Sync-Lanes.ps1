@@ -1,6 +1,6 @@
 ﻿# Sync-Lanes.ps1 — レーン同期。各レーン（worktree のブランチ）を main に入れ、その main を各レーンに入れる。
 #
-# 元は kaedevn（UE）の Scripts/Sync-Lanes.ps1（origin/main 3cdd050b・2026-09-16 新設）。Unity 向けに変えたのは
+# 元は Unreal Engine のプロジェクトの Scripts/Sync-Lanes.ps1（origin/main 3cdd050b・2026-09-16 新設）。Unity 向けに変えたのは
 # 「次に要る作業（next）」の判定（bake・UE ビルド → テスト・パッケージ）と、Unity エディタが開いているレーンの知らせの 2 点。
 # レーンの決まりの正: Docs/Guides/Working/worktree-lanes.md。手順はスキル .claude/skills/lane-sync/SKILL.md。
 #

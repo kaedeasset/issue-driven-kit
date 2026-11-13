@@ -1,6 +1,6 @@
 # GitHub リポジトリ（`origin`）の運用
 
-このプロジェクトの `origin` は private の GitHub に置く（kaedevn と同じ運用）。Issue の無人実行（`issue-run.md`）・PR・push はこれを前提にする。
+このプロジェクトの `origin` は private の GitHub に置く（元の Unreal Engine のプロジェクトと同じ運用）。Issue の無人実行（`issue-run.md`）・PR・push はこれを前提にする。
 
 ## 0. 守ること
 
@@ -17,11 +17,11 @@ GitHub にリポジトリを作るのは外向きの操作。Claude はユーザ
 
 ```powershell
 winget install --id GitHub.cli -e      # gh が無ければ
-gh auth login                          # mkanakureon でログイン
+gh auth login                          # リポジトリの持ち主のアカウントでログイン
 git init -b main                       # まだ git でなければ
 git add -A
 git commit -m "chore: 初期コミット"
-gh repo create mkanakureon/KaedeScapeBuii --private --source . --remote origin --push
+gh repo create <owner>/<リポジトリ> --private --source . --remote origin --push
 ```
 
 できたら `git remote get-url origin` が GitHub を指す。`issue-run.ps1` はここからリポジトリ名を読む。

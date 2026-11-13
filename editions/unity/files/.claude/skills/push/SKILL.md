@@ -2,7 +2,7 @@
 description: Use when the user asks to push commits to GitHub. Triggers on "pushして", "プッシュ", "GitHubに上げて", "リモートに反映".
 ---
 
-# Push Skill（Unity / KaedeScapeBuii 用）
+# Push Skill（Unity 用）
 
 `origin` は private の GitHub（作り方と規則の正は `Docs/Guides/Working/github-repo.md`）。**普通に `git push` する。**
 **この SKILL にルールを書き足さない**（足すなら github-repo.md）。
@@ -42,7 +42,7 @@ git rev-parse main
 
 ### 大きい差分が HTTP 408 で切られたとき
 
-GitHub の HTTPS は1回の送信が大きいと切る（kaedevn 2026-09-18 実測。音源 64MB が引き金）。コミットを小分けにして送る:
+GitHub の HTTPS は1回の送信が大きいと切る（元のプロジェクトで 2026-09-18 に実測。音源 64MB が引き金）。コミットを小分けにして送る:
 
 ```powershell
 $line = git rev-list --reverse --first-parent origin/main..main

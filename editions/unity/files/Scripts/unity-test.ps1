@@ -5,7 +5,7 @@
 #
 #   pwsh -NoProfile -File Scripts/unity-test.ps1                          # EditMode を全部
 #   pwsh -NoProfile -File Scripts/unity-test.ps1 -Platform All            # EditMode と PlayMode
-#   pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter 'KaedeScapeBuii.Tests.SmokeTests'   # 1 本・1 クラスだけ（名前空間.クラス[.メソッド]。; 区切り・正規表現も可）
+#   pwsh -NoProfile -File Scripts/unity-test.ps1 -Filter '<名前空間>.Tests.SmokeTests'   # 1 本・1 クラスだけ（名前空間.クラス[.メソッド]。; 区切り・正規表現も可）
 #   pwsh -NoProfile -File Scripts/unity-test.ps1 -CompileOnly             # スクリプトがコンパイルできるかだけ
 #
 # pwsh 7 と Windows PowerShell 5.1 の両方で動く。5.1 は実行ポリシーが既定で Restricted（スクリプトを実行できない）なので、
@@ -46,7 +46,7 @@ if (-not (Test-Path -LiteralPath $UnityExe)) { Write-Result 'BLOCKED' "Unity の
 # --- このプロジェクトを開いている Unity がいれば回さない ---
 $norm = $ProjectPath.Replace('\', '/').TrimEnd('/').ToLowerInvariant()
 $holders = @(Get-CimInstance Win32_Process -Filter "Name='Unity.exe'" -ErrorAction SilentlyContinue | Where-Object {
-        # 末尾を見る: 隣の worktree（KaedeScapeBuii-wt2 など）を同じフォルダーと取り違えない
+        # 末尾を見る: 隣の worktree（<プロジェクト>-wt2 など）を同じフォルダーと取り違えない
         $_.CommandLine -and ($_.CommandLine.Replace('\', '/').ToLowerInvariant() -match ([regex]::Escape($norm) + '/?(?=["\s]|$)'))
     })
 if ($holders.Count) {

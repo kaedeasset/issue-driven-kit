@@ -1,5 +1,5 @@
 {
-  "$comment": "issue-run.ps1 が claude -p に --settings で渡す設定の元。{{STOP_HOOK}} は実行時に絶対パスへ、{{REPO}} は作業場所の POSIX 形（例 d/Unreal Projects/kaedevn-rpg）へ置き換える。対話のセッションには効かない。権限は狭めるだけ（deny）で広げない。CLAUDE.md と .claude/ の deny は //{{REPO}}/ の絶対パスで直下だけに効かせる（裸の CLAUDE.md・.claude/** はどの深さにも効き、製品の雛形 Templates/NewWork/ の CLAUDE.md と .claude/skills/〔配布物〕まで断って #15 が落ちた。2026-10-17 ユーザー判断で雛形は書けるようにした。gitignore の ! や ./ では外れないことを実測した）。説明は Docs/Guides/Working/issue-run.md の「止まらない仕組み」",
+  "$comment": "issue-run.ps1 が claude -p に --settings で渡す設定の元。{{STOP_HOOK}} は実行時に絶対パスへ、{{REPO}} は作業場所の POSIX 形（例 c/work/<プロジェクト>）へ置き換える。対話のセッションには効かない。権限は狭めるだけ（deny）で広げない。CLAUDE.md と .claude/ の deny は //{{REPO}}/ の絶対パスで直下だけに効かせる（裸の CLAUDE.md・.claude/** はどの深さにも効き、製品の雛形 Templates/NewWork/ の CLAUDE.md と .claude/skills/〔配布物〕まで断って Issue が落ちた。2026-10-17 ユーザー判断で雛形は書けるようにした。gitignore の ! や ./ では外れないことを実測した）。説明は Docs/Guides/Working/issue-run.md の「止まらない仕組み」",
   "env": {
     "DISABLE_AUTOUPDATER": "1",
     "BASH_DEFAULT_TIMEOUT_MS": "600000",

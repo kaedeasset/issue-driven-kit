@@ -1,6 +1,6 @@
 ---
 name: Claude に無人で進めさせる
-about: Scripts/issue-run.ps1 が拾う札。設計はリポジトリの文書に書き、ここには「何をやってよいか」と合格の条件を書く
+about: Scripts/issue-run.ps1 が拾う指示書。設計はリポジトリの文書に書き、ここには「何をやってよいか」と合格の条件を書く
 labels: claude-run
 ---
 

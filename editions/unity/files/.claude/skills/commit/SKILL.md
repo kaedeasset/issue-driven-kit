@@ -2,10 +2,10 @@
 description: Use when the user asks to commit changes, stage files, or create a git commit. Triggers on "コミットして", "commit", "変更をコミット".
 ---
 
-# コミット Skill（Unity / KaedeScapeBuii 用）
+# コミット Skill（Unity 用）
 
 `git add` → `git commit` を一貫したルールで実行する。
-このプロジェクトは Unity 6（6000.6.6f1）の C# プロジェクト。生成物は `.gitignore` 済み。kaedevn（UE）の commit スキルと同じ規則。
+このプロジェクトは Unity 6 の C# プロジェクト（版は `ProjectSettings/ProjectVersion.txt`）。生成物は `.gitignore` 済み。元の Unreal Engine のプロジェクトの commit スキルと同じ規則。
 
 ## トリガー
 

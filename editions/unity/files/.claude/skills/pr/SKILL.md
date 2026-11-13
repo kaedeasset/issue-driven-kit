@@ -2,7 +2,7 @@
 description: Use when the user asks to open a Pull Request from a dev branch to main. Triggers on "PRを出して", "プルリク作って", "PRだして", "レビューに出して".
 ---
 
-# PR Skill（Unity / KaedeScapeBuii 用）
+# PR Skill（Unity 用）
 
 開発ブランチから `main` への Pull Request を作成する。
 

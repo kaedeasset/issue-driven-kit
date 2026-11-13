@@ -3,7 +3,8 @@
 //   K-1  共有の部品と Unity 版の部品が全部ある
 //   K-3  （Unity 側）Unity 版の読み取りの関数が、見本を答えどおりに読み、Node 版の見本の js の塊を確認コマンドにしない … Windows と pwsh があるときだけ
 //   K-4  入れた結果: Unity 版を空の git の作業場所に入れると一覧どおりの物ができる … Windows と pwsh があるときだけ
-//        （Unity 版はキットが正。設計 docs/design/unity-edition-decoupling-design.md の 3.7。固有の語の試験は同じ設計の U2 で足す）
+//        （Unity 版はキットが正。設計 docs/design/unity-edition-decoupling-design.md の 3.7）
+//   K-4  固有の語: Unity 版に特定のプロジェクトだけの語が無い（語の一覧は定数 unityForbidden。同じ設計の 3.2）
 //   決まりの文に、Unity 版が写しだった頃の語が残っていない（同じ設計の 3.1）
 //   共有の決まり（原則・進め方の決まり）が、各版の CLAUDE.md にそのまま入っている
 //   移行ガイドの節・issueKit の語が残っていない・Node 版のひな形が言語とテストの道具を決め打ちしない（設計 docs/design/test-entry-config-design.md の 2.12）
@@ -191,6 +192,30 @@ test('K-4 入れた結果: Unity 版を空の作業場所に入れると一覧�
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// Unity 版に入れない、特定のプロジェクトだけの語（設計 unity-edition-decoupling-design.md の 3.2 の F1〜F9。一覧はここ 1 か所）。
+// 大文字と小文字を分ける。言い換え方は同じ設計の 3.2 の表
+const unityForbidden = [
+  ['F1 作者のプロジェクトの名前', /[Kk]aede[Ss]cape/],
+  ['F2 作者の別のプロジェクトの名前', /kaedevn/],
+  ['F3 作者のプロジェクトの呼び名', /(?<![A-Za-z])Scape|(?<![a-z])scape-|SCAPE/],
+  ['F4 Unity の版の番号', /6000\.\d+/],
+  ['F5 作者のアカウント', /mkanakureon/],
+  ['F6 PC の中のパス', /[Cc]:?[\\/]Users[\\/](?!<you>)|(?<![A-Za-z:])\/Users\/(?!<you>)/],
+  ['F7 言い換える語', /札/],
+  ['F8 例でない Issue の番号', /#(?![123]\b)\d{1,3}\b/],
+  ['F9 作者のプロジェクトの段とクラス', /\bM1\b|\bD9\b|ShotService|ShotCapturer|TestWorldBuilder/],
+];
+
+test('K-4 固有の語: Unity 版に特定のプロジェクトだけの語が無い', () => {
+  const root = join(kit, 'editions/unity/files');
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(join(d, e.name)) : [relative(root, join(d, e.name)).replaceAll('\\', '/')]);
+  const files = walk(root);
+  assert.ok(files.length > 0, 'Unity 版のファイルが無い');
+  const hits = files.flatMap((f) => read(`editions/unity/files/${f}`).split('\n').flatMap((line, i) =>
+    unityForbidden.filter(([, re]) => re.test(line)).map(([name]) => `${f}:${i + 1} ${name}`)));
+  assert.deepEqual(hits, [], `残っている: ${hits.join(', ')}`);
 });
 
 test('試験の手伝い: pwsh が落ちたときだけ 2 回までやり直し、やり直すたびに 1 行残す', () => {

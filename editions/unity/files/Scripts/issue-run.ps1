@@ -2,14 +2,14 @@
 # issue-run.ps1 — GitHub Issue を1件ずつ、無人の Claude Code（claude -p）に合格まで進めさせる。
 #
 # 使い方と Issue の書き方の正: Docs/Guides/Working/issue-run.md
-# 元は kaedevn（UE）の Scripts/issue-run.ps1（origin/main 3cdd050b・2026-10-21 の版。検討の記録は kaedevn の Docs/Reports/2026/10/14/03・04）。
+# 元は Unreal Engine のプロジェクトの仕組みの Scripts/issue-run.ps1（origin/main 3cdd050b・2026-10-21 の版。検討の記録は元のプロジェクトの記録にある）。
 # Unity 向けに変えたのは、リポジトリを origin から読む・ログを Logs/IssueRun に置く・UE の代わりに
 # 「Unity エディタがこの作業場所を開いているか」を見る・lib/text.ps1 を持たず BOM 無し UTF-8 をここで定義する、の 4 点。仕組みは同じ。
 #
-#   pwsh Scripts\issue-run.ps1                     # 札の付いた Issue を全部、順に（Unity エディタが開いていればその回はバッチモードを禁じて渡す）
+#   pwsh Scripts\issue-run.ps1                     # ラベルの付いた Issue を全部、順に（Unity エディタが開いていればその回はバッチモードを禁じて渡す）
 #   pwsh Scripts\issue-run.ps1 -Issue 12            # 1件だけ
 #   pwsh Scripts\issue-run.ps1 -DryRun              # 対象・合格の条件・渡す指示文を見るだけ（Claude は起動しない）
-#   pwsh Scripts\issue-run.ps1 -WorkDir 'C:\Users\<you>\Documents\UnityProject\KaedeScapeBuii-wt2'   # 作業場所を指定（選ぶ画面を出さない）
+#   pwsh Scripts\issue-run.ps1 -WorkDir 'C:\work\<プロジェクト>-wt2'   # 作業場所を指定（選ぶ画面を出さない）
 #
 # 作業場所（worktree）: 窓から起動すると worktree の一覧を出して選ばせる（Enter で起動したフォルダー）。
 # 入力が窓でなければ起動したフォルダー。スクリプトの置き場では決めない。worktree ごとに 1 本ずつ、同時に動かせる。
@@ -53,7 +53,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 # gh・git・claude は UTF-8 で出す。既定（日本語の Windows は CP932）のまま読むと、Issue の本文の日本語が化けて
 # 「## 合格の条件」が見つからず、どの Issue も起動しなくなる（2026-10-14 に Issue #1 の -DryRun で実際に起きた）
-$Utf8NoBom = [System.Text.UTF8Encoding]::new($false)   # BOM 無し UTF-8（kaedevn は Scripts/lib/text.ps1 に置く。ここは 1 本なのでその場で）
+$Utf8NoBom = [System.Text.UTF8Encoding]::new($false)   # BOM 無し UTF-8（元のプロジェクトは Scripts/lib/text.ps1 に置く。ここは 1 本なのでその場で）
 [Console]::OutputEncoding = $Utf8NoBom
 $OutputEncoding = $Utf8NoBom
 # -Mode night/day は 2026-10-15 に廃止した。PowerShell は引数名の頭の一致を受け付けるので、
@@ -91,7 +91,7 @@ function Get-RunningPid([string]$Root) {
 
 # 作業場所を決める。-WorkDir があればそれ。窓から起動したら worktree の一覧から選ばせる（Enter で起動したフォルダー）。
 # 窓でなければ起動したフォルダー。スクリプトの置き場では決めない
-# （kaedevn 2026-10-15: 別の worktree のスクリプトから起動され、ユーザーに覚えのない worktree で動いていた）。
+# （元のプロジェクトで 2026-10-15: 別の worktree のスクリプトから起動され、ユーザーに覚えのない worktree で動いていた）。
 function Resolve-WorkRoot {
     if ($WorkDir) {
         $top = Get-GitTop $WorkDir
@@ -334,7 +334,7 @@ function Get-UndecidableReport([string]$Text) {
 function Get-UnityState {
     $norm = $RepoRoot.Replace([char]92, [char]47).TrimEnd('/').ToLowerInvariant()
     $holders = @(Get-CimInstance Win32_Process -Filter "Name='Unity.exe'" -ErrorAction SilentlyContinue | Where-Object {
-            # 末尾を見る: 隣の worktree（KaedeScapeBuii-wt2 など）を同じフォルダーと取り違えない
+            # 末尾を見る: 隣の worktree（<プロジェクト>-wt2 など）を同じフォルダーと取り違えない
             $_.CommandLine -and ($_.CommandLine.Replace([char]92, [char]47).ToLowerInvariant() -match ([regex]::Escape($norm) + '/?(?=["\s]|$)'))
         })
     if ($holders.Count -eq 0) { return 'この作業場所を開いている Unity は無い。確かめは Scripts/unity-test.ps1（バッチモード）で、変えた所に関係するものだけ回す。Unity エディタを窓で起動しない。' }
@@ -432,7 +432,7 @@ $ES_CONTINUOUS = [uint32]'0x80000000'
 $ES_SYSTEM_REQUIRED = [uint32]'0x00000001'
 
 # --- 窓の簡易編集モードを切る（このスクリプトが動いている間だけ。終われば戻す） ---
-# 窓の中をクリックすると選択モードに入り、画面への出力で止まる（2026-10-14 に #4 で 24 分止まった）
+# 窓の中をクリックすると選択モードに入り、画面への出力で止まる（2026-10-14 に 1 件の回が 24 分止まった）
 Add-Type -Namespace IssueRun -Name Console -MemberDefinition @'
 [DllImport("kernel32.dll")] public static extern System.IntPtr GetStdHandle(int nStdHandle);
 [DllImport("kernel32.dll")] public static extern bool GetConsoleMode(System.IntPtr h, out uint mode);
@@ -487,13 +487,13 @@ $aborted = ''
 try {
     Initialize-Labels
 
-    # 前回が途中で落ちていたら、実行中の札が残っている。外して対象に戻す。
-    # ほかの worktree の実行が進めている Issue の札は生きているので外さない。
+    # 前回が途中で落ちていたら、実行中のラベルが残っている。外して対象に戻す。
+    # ほかの worktree の実行が進めている Issue のラベルは生きているので外さない。
     $othersBusy = Get-OtherRunningIssues
     $stale = Invoke-Gh @('issue', 'list', '--repo', $Repo, '--label', $LabelWorking, '--state', 'open', '--json', 'number') | Out-String | ConvertFrom-Json
     foreach ($s in @($stale)) {
         if (-not $s -or $othersBusy -contains [int]$s.number) { continue }
-        Set-IssueLabel $s.number -Remove @($LabelWorking); Write-Step "前回の実行中の札を外した: #$($s.number)"
+        Set-IssueLabel $s.number -Remove @($LabelWorking); Write-Step "前回の実行中のラベルを外した: #$($s.number)"
     }
 
     # 設定の実体を作る（hook のパスを絶対パスに）。JSON として読めなければここで止める
