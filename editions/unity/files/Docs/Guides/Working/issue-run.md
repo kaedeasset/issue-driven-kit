@@ -32,7 +32,7 @@ GitHub Issue にラベルを付けておくと、`Scripts/issue-run.ps1` が1件
 | 設定が読まれていない（`-p` は壊れた設定を黙って無視する） | 起動前の点検で、Stop hook が呼ばれたことと deny が効いたことを実際に確かめる |
 | PC のスリープ | 動いている間だけスリープを止める |
 | 窓の中をクリックして選択モードになり、出力で止まる | 動いている間だけ、その窓の簡易編集モードを切る |
-| Unity エディタがその作業場所を開いている | 指示文に「バッチモードを回さない・テストの要る条件は未判定」と渡す。起動の前に、開いていない worktree を選ぶ |
+| Unity エディタがその作業場所を開いている | **Issue を始めずに BLOCKED（終了コード 3）で終わる**（-DryRun は知らせるだけ）。エディタを閉じるか、開いていない worktree で起動する。回の途中で開かれたときだけ、指示文に「バッチモードを回さない・テストの要る条件は未判定」と渡す（始めた回が約 80 分待って打ち切られたことがある） |
 
 設定は `.claude/issue-run/settings.json`（`--settings` で渡す。対話のセッションには効かない。権限は狭めるだけで広げない）。
 
@@ -45,7 +45,7 @@ GitHub Issue にラベルを付けておくと、`Scripts/issue-run.ps1` が1件
 | ラベル | 付ける人 | 意味 |
 |---|---|---|
 | `claude-run` | ユーザー | やってよい。ひな形から作ると最初から付く |
-| `claude-working` | スクリプト | 実行中 |
+| `claude-working` | スクリプト | 実行中（Ctrl+C などで止めると残る。次の起動が、対象を数える前に外す。-DryRun は外さずに知らせる） |
 | `claude-done` | スクリプト | 合格した。確認して閉じる |
 | （前提待ち） | スクリプト | ラベルは付けない。「## 前提」の Issue が済むまで始めず、まとめに WAITING と出る |
 | `claude-failed` | スクリプト | 合格の条件か確認コマンドが無い・回数切れ・判定不能（合格の条件が両立しない）・異常終了。理由はコメント。直して外すと再び対象になる |
@@ -54,7 +54,7 @@ GitHub Issue にラベルを付けておくと、`Scripts/issue-run.ps1` が1件
 
 ## 準備（最初の1回）
 
-1. **PowerShell 7（`pwsh`）と GitHub CLI（`gh`）を入れる。** issue-run は pwsh 7 でしか動かない（Windows PowerShell 5.1 では起動しない）。
+1. **PowerShell 7（`pwsh`）と GitHub CLI（`gh`）を入れる。** issue-run は pwsh 7 でしか動かない（Windows PowerShell 5.1 では起動しない）。`gh` が PATH に無いシェル（入れた後に PATH を読み直していない窓など）でも、スクリプトが `Program Files` の `GitHub CLI` を探す。Unity を既定でない場所に入れたなら、ユーザーの環境変数 `UNITY_EXE` に置く（親のシェルが設定より前に開いたものでも、スクリプトが読んで無人の回と確認コマンドに渡す）。
    ```powershell
    winget install --id Microsoft.PowerShell -e
    winget install --id GitHub.cli -e
@@ -87,8 +87,8 @@ pwsh Scripts\issue-run.ps1 -WorkDir 'C:\work\<プロジェクト>-wt2'   # 作�
 | `-Model` | `claude-opus-5-5` | 無人の回に使うモデル |
 | `-WorkDir` | （選ぶ） | 作業場所の worktree。指定すると選ぶ画面を出さない |
 
-- **作業場所は起動するときに選ぶ。** 窓から起動すると worktree の一覧が出るので、番号で選ぶ（Enter なら起動したフォルダー）。**自分が Unity で開いている作業場所は選ばない**（テストが全部 `BLOCKED` になり、合格できない）。
-- **worktree ごとに 1 本ずつ、同時に動かせる。** 同じ Issue を取り合ったら両方とも譲る。
+- **作業場所は起動するときに選ぶ。** 窓から起動すると worktree の一覧が出るので、番号で選ぶ（Enter なら起動したフォルダー）。無人の回の中（確認コマンド・その回の Claude。環境変数 `ISSUE_RUN_ROOT` がある）から呼ばれたときは、その回の作業場所を使い、聞かない。**自分が Unity で開いている作業場所は選ばない**（テストが全部 `BLOCKED` になり、合格できない）。
+- **worktree ごとに 1 本ずつ、同時に動かせる。** 同じ作業場所の 2 本目は、実行中のロックで終了コード 3 で終わる（`-DryRun` は見るだけなので止めない）。同じ Issue を取り合ったら両方とも譲る。
 - **worktree の Unity は `Library/` を別に持つ。** 新しい worktree の最初のテストは全部を取り込むので長い（数分〜）。先に 1 回 `pwsh -NoProfile -File Scripts/unity-test.ps1 -CompileOnly` を回しておくと、無人の回の時間を使わない。worktree を作るのはユーザー（CLAUDE.md）。
 
 ## 動いている間に見るもの

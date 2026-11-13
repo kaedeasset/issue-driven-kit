@@ -245,7 +245,9 @@ Claude を起動しない。対象の一覧と、各 Issue の「合格の条件
 | 確認コマンドの回し方 | `pwsh -NoProfile -Command <中身>`（作業場所で） | 中身を記録として `<ログ>/issue-<番号>-check.mjs` に書き、回すときは `node --input-type=module` に**標準入力から**渡す（作業場所で。`import './scripts/issue-run/check-lib.mjs'` のような相対の読み込みが作業場所の直下から解決される） |
 | 守るファイルの印（人が読む用） | `# 守る: <パス>` | `// 守る: <パス>` |
 | Stop hook の起動 | `pwsh -NoProfile -File <stop-hook.ps1>` | `node <stop-hook.mjs>` |
-| 使用中の判定 | Unity エディタがこの作業場所を開いているか | 使用中にしない（`wrangler dev` などが動いていれば知らせだけ） |
+| 使用中の判定 | Unity エディタがこの作業場所を開いているか。開いていれば Issue を始めずに `BLOCKED`（終了コード 3）で終わる（点検は知らせるだけ） | 使用中にしない（`wrangler dev` などが動いていれば知らせだけ） |
+| 残った「実行中」のラベル | 対象を数える前に外す（点検は外さずに知らせる） | 対象を数えた後に、本番の回だけ外す（点検は外さず、知らせもしない）。Node 版はまだ |
+| 点検と実行中のロック | 点検（`-DryRun`）はロックで止めない | 点検（`--dry-run`）も実行中のロックで止まる（終了コード 3）。Node 版はまだ |
 | 眠らせない | Windows の `SetThreadExecutionState` | Mac は `caffeinate -i -w <PID>`。Windows は点検で知らせる |
 | 窓の簡易編集モード | 実行中だけ切る（Windows） | しない |
 | 二重起動の PID の確かめ | プロセスの名前が `pwsh`／`powershell` | プロセスの名前が `node` |

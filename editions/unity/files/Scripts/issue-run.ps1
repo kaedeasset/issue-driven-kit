@@ -54,6 +54,9 @@ $ErrorActionPreference = 'Stop'
 # gh・git・claude は UTF-8 で出す。既定（日本語の Windows は CP932）のまま読むと、Issue の本文の日本語が化けて
 # 「## 合格の条件」が見つからず、どの Issue も起動しなくなる（2026-10-14 に Issue #1 の -DryRun で実際に起きた）
 $Utf8NoBom = [System.Text.UTF8Encoding]::new($false)   # BOM 無し UTF-8（元のプロジェクトは Scripts/lib/text.ps1 に置く。ここは 1 本なのでその場で）
+# 親のシェルが UNITY_EXE の設定より前に開いたものでも、ユーザーの環境変数の値を claude -p と確認コマンドに渡す
+# （無いと unity-test.ps1 が Hub の既定の場所を見て BLOCKED になる。Unity を既定でない場所に入れた PC で起きた）
+if (-not $env:UNITY_EXE) { $userUnity = [Environment]::GetEnvironmentVariable('UNITY_EXE', 'User'); if ($userUnity) { $env:UNITY_EXE = $userUnity } }
 [Console]::OutputEncoding = $Utf8NoBom
 $OutputEncoding = $Utf8NoBom
 # -Mode night/day は 2026-10-15 に廃止した。PowerShell は引数名の頭の一致を受け付けるので、
@@ -99,6 +102,12 @@ function Resolve-WorkRoot {
         return $top
     }
     $here = Get-GitTop $PWD.Path
+    # 無人の回の中（確認コマンド・その回の Claude）から呼ばれたら、その回の作業場所を使い、聞かない。
+    # 入力が窓につながったままなので、聞くと人の窓に「番号:」が出て回が止まったことがある
+    if ($env:ISSUE_RUN_ROOT) {
+        $top = Get-GitTop $env:ISSUE_RUN_ROOT
+        if ($top) { return $top }
+    }
     if ([Console]::IsInputRedirected) {
         if (-not $here) { throw "起動したフォルダーが git の作業フォルダーでない: $($PWD.Path)。-WorkDir で指定する" }
         return $here
@@ -330,13 +339,18 @@ function Get-UndecidableReport([string]$Text) {
 }
 
 # Unity はプロジェクトのフォルダーごとにロックする。エディタがこの作業場所を開いていると、バッチモード
-# （Scripts/unity-test.ps1）は回せない。開いていれば、このセッションでのバッチモードとエディタ起動を禁じて渡す。
-function Get-UnityState {
+# （Scripts/unity-test.ps1）は回せない。開いていれば Issue を始めない（始めた回が約 80 分待って打ち切られたことがある）。
+# 回の途中でエディタが開かれたときだけ、指示文でバッチモードとエディタ起動を禁じて渡す。
+function Get-UnityHolders {
     $norm = $RepoRoot.Replace([char]92, [char]47).TrimEnd('/').ToLowerInvariant()
-    $holders = @(Get-CimInstance Win32_Process -Filter "Name='Unity.exe'" -ErrorAction SilentlyContinue | Where-Object {
+    return @(Get-CimInstance Win32_Process -Filter "Name='Unity.exe'" -ErrorAction SilentlyContinue | Where-Object {
             # 末尾を見る: 隣の worktree（<プロジェクト>-wt2 など）を同じフォルダーと取り違えない
             $_.CommandLine -and ($_.CommandLine.Replace([char]92, [char]47).ToLowerInvariant() -match ([regex]::Escape($norm) + '/?(?=["\s]|$)'))
         })
+}
+
+function Get-UnityState {
+    $holders = @(Get-UnityHolders)
     if ($holders.Count -eq 0) { return 'この作業場所を開いている Unity は無い。確かめは Scripts/unity-test.ps1（バッチモード）で、変えた所に関係するものだけ回す。Unity エディタを窓で起動しない。' }
     return "Unity エディタがこの作業場所を開いている（PID $(($holders | ForEach-Object { $_.ProcessId }) -join ', ')）。止めない。このセッションでは Scripts/unity-test.ps1 もエディタの起動もしない（BLOCKED になる）。テストの要らない条件を先に満たし、テストが要る条件は報告の判定表に「未判定（Unity 使用中）」と書いて NOT-PASS で返す。"
 }
@@ -407,8 +421,10 @@ function Test-LimitError($Res) {
 }
 
 function Invoke-PassCheck([string]$Code, [string]$OutFile) {
-    $out = & pwsh -NoProfile -WorkingDirectory $RepoRoot -Command $Code 2>&1 | Out-String
-    $exitCode = $LASTEXITCODE
+    # 確認コマンドの中の issue-run.ps1 -DryRun が作業場所を聞かないよう、claude -p と同じく ISSUE_RUN_ROOT を渡す
+    $env:ISSUE_RUN_ROOT = $RepoRoot
+    try { $out = & pwsh -NoProfile -WorkingDirectory $RepoRoot -Command $Code 2>&1 | Out-String; $exitCode = $LASTEXITCODE }
+    finally { Remove-Item Env:ISSUE_RUN_ROOT -ErrorAction SilentlyContinue }
     Set-Content -Path $OutFile -Value "exit=$exitCode`n$out" -Encoding utf8
     $tail = ($out.Trim() -split "`n" | Select-Object -Last 30) -join "`n"
     return [pscustomobject]@{ Passed = ($exitCode -eq 0); Tail = $tail; ExitCode = $exitCode }
@@ -446,18 +462,39 @@ $ENABLE_EXTENDED_FLAGS = [uint32]'0x0080'
 
 # --- 二重起動を防ぐ ---
 New-Item -ItemType Directory -Force -Path (Split-Path $LockFile) | Out-Null
-if (Test-Path $LockFile) {
+# -DryRun は見るだけでロックを取らないので、動いている回があっても止めない（その回の確認コマンドが
+# -DryRun を呼ぶと、自分の回のロックで exit 3 になり合格できなかったことがある）
+if (-not $DryRun -and (Test-Path $LockFile)) {
     $otherPid = [int](Get-Content $LockFile -Raw)
     if (Get-Process -Id $otherPid -ErrorAction SilentlyContinue) { Write-Step "別の issue-run が動いている（PID $otherPid）。終了する。"; exit 3 }
 }
 
 foreach ($f in $PromptFile, $SettingsTemplate, $StopHook) { if (-not (Test-Path $f)) { throw "無人実行の部品が無い: $f — Docs/Guides/Working/issue-run.md の「準備」" } }
+# gh が PATH に無いシェル（PATH を読み直していない Claude Code など）でも見つける
+if (-not (Get-Command gh -CommandType Application -ErrorAction SilentlyContinue)) {
+    $ghDir = Join-Path $env:ProgramFiles 'GitHub CLI'
+    if (Test-Path -LiteralPath (Join-Path $ghDir 'gh.exe')) { $env:PATH = "$ghDir;$env:PATH" }
+}
 & gh auth status *> $null
 if ($LASTEXITCODE -ne 0) { throw 'gh にログインしていない。gh auth login を先に。' }
 
+# 前回が途中で落ちていたら（Ctrl+C など）、実行中のラベルが残っている。外して対象に戻す（-DryRun は外さずに見せる）。
+# 対象を数える前にする（数えた後だと、ラベルの残った Issue が 0 件に数えられて終わる）。
+# ほかの worktree の実行が進めている Issue のラベルは生きているので外さない。
+$othersBusy = Get-OtherRunningIssues
+$stale = Invoke-Gh @('issue', 'list', '--repo', $Repo, '--label', $LabelWorking, '--state', 'open', '--json', 'number') | Out-String | ConvertFrom-Json
+foreach ($s in @($stale)) {
+    if (-not $s -or $othersBusy -contains [int]$s.number) { continue }
+    if ($DryRun) { Write-Step "前回の実行中のラベルが残っている: #$($s.number)（本番で外す）"; continue }
+    Set-IssueLabel $s.number -Remove @($LabelWorking); Write-Step "前回の実行中のラベルを外した: #$($s.number)"
+}
+
 $targets = @(Get-TargetIssues)   # @() で包む（1 件・0 件だと配列が崩れ、Set-StrictMode の下で .Count が止まる）
 Write-Step ("対象 {0} 件: {1}" -f $targets.Count, (($targets | ForEach-Object { "#$($_.number)" }) -join ' '))
+$unityHolders = @(Get-UnityHolders)
+$unityBlocked = "Unity エディタがこの作業場所を開いている（PID $(($unityHolders | ForEach-Object { $_.ProcessId }) -join ', ')）。エディタを閉じるか、開いていない worktree で起動する"
 if ($DryRun) {
+    if ($unityHolders.Count -and $targets.Count) { Write-Step "BLOCKED: $unityBlocked（本番は始めずに終わる）" }
     $denyPaths = @(Get-DenyEditPaths (Get-Content $SettingsTemplate -Raw -Encoding utf8))
     foreach ($t in $targets) {
         $c = Get-PassCriteria $t.body
@@ -476,6 +513,7 @@ if ($DryRun) {
     exit 0
 }
 if ($targets.Count -eq 0) { exit 0 }
+if ($unityHolders.Count) { Write-Step "BLOCKED: $unityBlocked。どの Issue も始めない。"; exit 3 }
 
 Set-Content -Path $LockFile -Value $PID -Encoding ascii
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
@@ -486,15 +524,6 @@ $aborted = ''
 
 try {
     Initialize-Labels
-
-    # 前回が途中で落ちていたら、実行中のラベルが残っている。外して対象に戻す。
-    # ほかの worktree の実行が進めている Issue のラベルは生きているので外さない。
-    $othersBusy = Get-OtherRunningIssues
-    $stale = Invoke-Gh @('issue', 'list', '--repo', $Repo, '--label', $LabelWorking, '--state', 'open', '--json', 'number') | Out-String | ConvertFrom-Json
-    foreach ($s in @($stale)) {
-        if (-not $s -or $othersBusy -contains [int]$s.number) { continue }
-        Set-IssueLabel $s.number -Remove @($LabelWorking); Write-Step "前回の実行中のラベルを外した: #$($s.number)"
-    }
 
     # 設定の実体を作る（hook のパスを絶対パスに）。JSON として読めなければここで止める
     # {{REPO}} は作業場所の POSIX 形（D:\x\y → d/x/y）。設定の deny の //{{REPO}}/CLAUDE.md が、この worktree の直下だけに効く
