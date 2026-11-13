@@ -127,7 +127,8 @@ if (Test-Path $verFile) {
     elseif ($blocked.Count) { Report 'NG' 'Smart App Control' "On で、Unity の部品を止めている$was。テストは BLOCKED（0x800711C7）になる。切るかはユーザーが決める（一度切ると戻せない）" }
     elseif ($sac -eq 1) { Report 'WARN' 'Smart App Control' 'On。いまは Unity を止めていないが、Windows の判定の更新で止め始めることがある（0x800711C7）。切るかはユーザーが決める' }
     elseif ($sac -eq 2) { Report 'WARN' 'Smart App Control' '評価モード（いずれ On になることがある）。切るかはユーザーが決める' }
-    else { Report 'OK' 'Smart App Control' 'Off' }
+    elseif ($null -eq $sac) { Report 'OK' 'Smart App Control' '状態を読めない（この Windows には無い）' }
+    else { Report 'WARN' 'Smart App Control' "知らない値 $sac（0 = Off・1 = On・2 = 評価モード）" }
     if (-not (Test-Path (Join-Path $Root 'Library'))) { Report 'WARN' 'Library' 'まだ無い（初めての取り込みで数分かかる）。先に unity-test.ps1 -CompileOnly を 1 回回しておくと無人の回の時間を使わない' }
 }
 
