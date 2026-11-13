@@ -1,6 +1,6 @@
 // kit.test.mjs — キット自身の試験（node --test tests/）。npm のパッケージは使わない。
 // 合格の条件の正: docs/design/issue-driven-kit-basic-design.md の 1.2（K-1〜K-8）。
-//   K-1  共有の部品と Unity 版の部品が全部ある
+//   K-1  共有の部品と Unity 版の部品が全部ある（Issue を作る・見る・閉じるスクリプト 5 本を含む。設計 docs/design/unity-edition-decoupling-design.md の 3.5）
 //   K-3  （Unity 側）Unity 版の読み取りの関数が、見本を答えどおりに読み、Node 版の見本の js の塊を確認コマンドにしない … Windows と pwsh があるときだけ
 //   K-4  入れた結果: Unity 版を空の git の作業場所に入れると一覧どおりの物ができる … Windows と pwsh があるときだけ
 //        （Unity 版はキットが正。設計 docs/design/unity-edition-decoupling-design.md の 3.7）
@@ -33,6 +33,7 @@ const unityFiles = [
     .map((s) => `.claude/skills/${s}/SKILL.md`),
   '.github/ISSUE_TEMPLATE/claude-run.md', '.gitattributes', '.gitignore',
   'Scripts/issue-run.ps1', 'Scripts/issue-run-doctor.ps1', 'Scripts/Sync-Lanes.ps1', 'Scripts/unity-test.ps1',
+  'Scripts/issue-protect.ps1', 'Scripts/issue-gh.ps1', 'Scripts/issue-create.ps1', 'Scripts/issue-result.ps1', 'Scripts/issue-close.ps1',
   'Docs/Guides/README.md',
   'Docs/Guides/Working/issue-run.md', 'Docs/Guides/Working/issue-driven-development.md',
   'Docs/Guides/Working/worktree-lanes.md', 'Docs/Guides/Working/github-repo.md',

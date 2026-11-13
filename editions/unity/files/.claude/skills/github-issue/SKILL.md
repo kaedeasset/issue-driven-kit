@@ -9,7 +9,7 @@ Issue は「どの文書のどこを、どの合格の条件まで」の指示�
 
 ## 前提（毎回）
 
-- `gh auth status` が通る・`git remote get-url origin` が GitHub を指す（`gh` が PATH に無いシェルでは `& 'C:\Program Files\GitHub CLI\gh.exe'`）。どちらかが無ければ止めて `Docs/Guides/Working/github-repo.md` を示す。
+- `gh auth status` が通る・`git remote get-url origin` が GitHub を指す（`gh` が PATH に無いシェルでは `& 'C:\Program Files\GitHub CLI\gh.exe'`。下の `Scripts/issue-create.ps1`・`issue-result.ps1`・`issue-close.ps1` は自分で探す）。どちらかが無ければ止めて `Docs/Guides/Working/github-repo.md` を示す。
 - **Issue を作る・ラベルを付ける・閉じるのは外向きの操作。** ユーザーが「作って」と言ったときだけ。下書きまでは自分で進めてよい。
 
 ## A. Issue を作る（「イッシュを作って」）
@@ -24,13 +24,17 @@ Issue は「どの文書のどこを、どの合格の条件まで」の指示�
    - フォルダごと変えさせないなら最後に `git status --porcelain -- <フォルダ>` を見る
    - 落ちるときは `Write-Host` で理由を出し、最後は `exit 0`
 6. **確認コマンドを自分で 1 回回して、いま落ちる（まだできていない）ことと、落ちる理由が「まだ作っていないから」であることを見る。** 最初から通るならゴールが書けていない。確認コマンド自身の誤りで落ちるなら直す（元のプロジェクトでは、これで 4 回を使い切った Issue が 2 件あった）。エディタが開いていて `BLOCKED` なら、その旨を下書きに書いてユーザーに渡す。
-7. 本文を `Logs/IssueDrafts/<題>.md` に書き、ユーザーに見せる（ひな形 `.github/ISSUE_TEMPLATE/claude-run.md` の欄どおり）。
-8. 「作って」と言われていれば作る:
+7. 本文を `Logs/IssueDrafts/<題>.md`、題を `<題>.title.txt` に書き、ユーザーに見せる（ひな形 `.github/ISSUE_TEMPLATE/claude-run.md` の欄どおり）。作る前の確かめだけを先に回す:
    ```powershell
-   gh issue create --title "<題>" --body-file Logs/IssueDrafts/<題>.md --label claude-run
+   pwsh -NoProfile -File Scripts/issue-create.ps1 -Draft Logs/IssueDrafts/<題> -Change <直させるファイル>,… -DryRun   # 作らない
    ```
-   ラベル `claude-run` がまだ無いと失敗する。そのときは `gh label create claude-run --color 1d76db --description "Claude に無人で進めさせてよい"` を先に（issue-run.ps1 も最初の実行で作る）。
-9. 作った直後の Issue は `gh issue list` に出ないことがある（数十秒待つ）。`pwsh Scripts\issue-run.ps1 -Issue <番号> -DryRun` で、合格の条件の行数・確認コマンド「あり」・守るファイルが期待どおりかを見て、URL と一緒に報告する。「守るファイル」の行は**切らずに全部読み**、直させるファイルが 1 つも入っていないことを確かめる（ファイルのパスを丸ごと変数に入れても守られる。変数に入れるのはフォルダーまで）。
+   本文の確認コマンドの構文・`<題>.check.ps1` があれば本文と同じか・パスのまま書いた管理下のファイルが `# 守る:` にあるか・直させるファイルが守るファイルに入っていないかを見る（守るファイルは `issue-run.ps1` と同じ関数 `Scripts/issue-protect.ps1` で出す）。
+8. 「作って」と言われていれば、同じコマンドを `-DryRun` なしで回す:
+   ```powershell
+   pwsh -NoProfile -File Scripts/issue-create.ps1 -Draft Logs/IssueDrafts/<題> -Change <直させるファイル>,…
+   ```
+   7 の確かめを通ってから Issue を作って `claude-run` を付け、作った直後は一覧に出ない（数十秒）ので、`issue-run.ps1 -Issue <番号> -DryRun` が対象に出すまで待つ。最後の行 `Result: PASS  #<番号> <URL>（条件 <n> 行・守る <n>）` を URL と一緒に報告する。ラベル `claude-run` がまだ無いと失敗する。そのときは `gh label create claude-run --color 1d76db --description "Claude に無人で進めさせてよい"` を先に（issue-run.ps1 も最初の実行で作る）。
+9. 守るファイルは、ファイルのパスを丸ごと書くと変数に入れても守られる。直させるファイルは、フォルダーまでを変数に入れて指す（比べるだけの行でも同じ）。`Result: FAIL` で守るファイルに入っていると言われたら、下書きを直して 7 からやり直す。
 
 ## B. Issue を見る（「イッシュを見て」「一覧」）
 
@@ -52,8 +56,16 @@ gh issue view <番号> --comments
    pwsh Scripts\issue-run.ps1 -Issue 12       # 1 件だけ
    ```
    作業場所は、ユーザーが Unity で開いていない worktree を選ぶ（開いているとテストが BLOCKED になる）。
-3. 終わったら `Docs/Reports/YYYY/MM/DD/NN-issue-run.md` と各 Issue のコメントを読み、結果を報告する（閉じる・push はユーザー）。
-4. 合格しなかったものは、理由ごとの直し方（issue-goal-setting.md 8 章）を示す。ユーザーが「閉じて」「出し直して」と言ったら、決まった形のコメント（「合格（claude-done）を確認して閉じる（YYYY-MM-DD ユーザー指示）」・「## 対応（日時）」）を付けてから閉じる／`claude-failed` を外す。
+3. 「終わった」と言われたら、まず回った跡を見る（まだ回っていないことがある）:
+   ```powershell
+   pwsh -NoProfile -File Scripts/issue-result.ps1 -Issue <番号>    # PASS 0・FAIL 1・NOTRUN と RUNNING 2
+   ```
+   Issue の状態とラベル・最後の結果のコメント（結果の表・選んだこと・未採用の改善）・その回のコミットが手元にあるか・まだコミットしていないまとめ（`Docs/Reports/YYYY/MM/DD/NN-issue-run.md`）を出す。それを読んで結果を報告する（閉じる・push はユーザー）。
+4. 合格しなかったものは、理由ごとの直し方（issue-goal-setting.md 8 章）を示す。ユーザーが「閉じて」と言ったら:
+   ```powershell
+   pwsh -NoProfile -File Scripts/issue-close.ps1 -Issue 1,2 -Note '<人が確かめたこと>'
+   ```
+   決まった形のコメント（「合格（claude-done）を確認して閉じる（YYYY-MM-DD ユーザー指示）」）を付けて閉じる。`claude-done` の無い物は閉じない（`-Force` で閉じる）。「出し直して」なら「## 対応（日時）」のコメントを付けて `claude-failed` を外す。
 
 ## やらないこと
 

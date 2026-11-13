@@ -6,11 +6,12 @@
 //   A4  点検（-DryRun）は実行中のロックで止めない
 //   A5  UNITY_EXE をユーザーの環境変数から読み、gh を PATH の外でも見つける
 //   A6  Smart App Control が Unity の DLL を止めた回（ログに 0x800711C7）を、テストの入口（unity-test.ps1）が BLOCKED（3）にし、点検が状態を見る
+//   B   Issue を作る・見る・閉じるスクリプト 5 本（issue-protect・issue-gh・issue-create・issue-result・issue-close）があり、守るファイルの決まりが issue-protect.ps1 の 1 か所にある（同じ設計の 3.5・U4）
 // 関数を回す分は Windows と pwsh があるときだけ（tests/unity/call-function.ps1 で構文木から取り出す）。文字列と並び順はいつも見る。
 // 外に触る所（gh・Unity・Get-CimInstance）は回さない。npm のパッケージは使わない。
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -165,4 +166,54 @@ test('Unity 版: Smart App Control が止めた回は BLOCKED にする', () => 
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// U4（設計 3.5）: Issue を作る・見る・閉じるスクリプト 5 本と、守るファイルの決まりを 1 か所にした形
+const scriptsDir = join(kit, 'editions/unity/files/Scripts');
+const issueScripts = ['issue-protect.ps1', 'issue-gh.ps1', 'issue-create.ps1', 'issue-result.ps1', 'issue-close.ps1'];
+const readScript = (f) => (existsSync(join(scriptsDir, f)) ? readFileSync(join(scriptsDir, f), 'utf8').replace(/\r/g, '') : '');
+
+test('Unity 版: 守るファイルの決まりが 1 か所にある', () => {
+  assert.equal(body('Get-ProtectedFiles'), '', 'issue-run.ps1 に関数 Get-ProtectedFiles の定義が無い');
+  assert.ok(lineOf((l) => /^\. \(Join-Path \$PSScriptRoot 'issue-protect\.ps1'\)/.test(l)) >= 0, 'issue-run.ps1 が issue-protect.ps1 を読む');
+  const calls = lines.filter((l) => !isComment(l) && /Get-ProtectedFiles /.test(l));
+  assert.ok(calls.length >= 3, `Get-ProtectedFiles の呼び出しがある（${calls.length} か所）`);
+  for (const l of calls) assert.match(l, /Get-ProtectedFiles \S+ \$RepoRoot\)/, `呼び出しが作業場所を渡す: ${l.trim()}`);
+  const protect = readScript('issue-protect.ps1');
+  assert.match(protect, /^function Get-ProtectedFiles\(\[string\]\$Code, \[string\]\$Root\)/m, 'issue-protect.ps1 に関数があり、作業場所を 2 つ目の引数で受け取る');
+  assert.ok(!protect.slice(protect.search(/^function Get-ProtectedFiles/m)).includes('$RepoRoot'), '関数は呼ぶ側の $RepoRoot を読まない');
+  assert.match(readScript('issue-create.ps1'), /Get-ProtectedFiles \$check \$root/, 'issue-create.ps1 も同じ関数で守るファイルを出す');
+  // 関数を回す（Windows と pwsh があるときだけ）: git が管理しているファイルだけを返す
+  if (!hasPwsh) return;
+  const dir = mkdtempSync(join(tmpdir(), 'kit-unity-protect-'));
+  try {
+    const git = (...a) => assert.equal(spawnSync('git', ['-C', dir, ...a], { encoding: 'utf8' }).status, 0, `git ${a.join(' ')}`);
+    git('init', '-q');
+    writeFileSync(join(dir, 'kept.md'), 'x\n');
+    writeFileSync(join(dir, 'loose.md'), 'x\n');
+    git('add', 'kept.md');
+    const got = callFn('Get-ProtectedFiles', `(@(Get-ProtectedFiles 'Get-Content ./kept.md; Get-Content loose.md; Test-Path none.md; Get-Content kept.md' '${dir}') | Sort-Object) -join ','`, '', 'issue-protect.ps1');
+    assert.equal(got, 'kept.md', '管理下のファイルを 1 回だけ返し、管理外・無いファイルを返さない');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('Unity 版: Issue を作る・見る・閉じるスクリプトがある', () => {
+  const missing = issueScripts.filter((f) => !existsSync(join(scriptsDir, f)));
+  assert.deepEqual(missing, [], '5 本がある');
+  for (const f of ['issue-create.ps1', 'issue-result.ps1', 'issue-close.ps1']) {
+    const s = readScript(f);
+    assert.ok(s.includes(". (Join-Path $PSScriptRoot 'issue-gh.ps1')"), `${f} が gh を探す共通の部品を読む`);
+    assert.match(s, /Write-Result 'PASS'/, `${f} が最後の行を Result: で出す`);
+  }
+  assert.match(readScript('issue-gh.ps1'), /^function Invoke-Gh\b/m, 'issue-gh.ps1 に Invoke-Gh がある');
+  assert.ok(readScript('issue-result.ps1').includes('NOTRUN') && readScript('issue-result.ps1').includes('RUNNING'), '結果を見るスクリプトが、まだ回っていない回といま回っている回を分ける');
+  assert.ok(readScript('issue-close.ps1').includes('claude-done'), '閉じるスクリプトは claude-done の Issue だけを閉じる');
+  // 構文の誤りが 0 件（Windows と pwsh があるときだけ）
+  if (!hasPwsh) return;
+  const code = `$bad = @(); foreach ($f in @(${issueScripts.map((f) => `'${join(scriptsDir, f)}'`).join(', ')})) { $e = $null; [void][System.Management.Automation.Language.Parser]::ParseFile($f, [ref]$null, [ref]$e); if ($e.Count) { $bad += "$(Split-Path $f -Leaf): $($e[0].Message)" } }; "bad=$($bad.Count) $($bad -join ' / ')".Trim()`;
+  const r = runWithRetry(() => spawnSync('pwsh', ['-NoProfile', '-Command', code], { encoding: 'utf8' }));
+  assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
+  assert.equal(r.stdout.replace(/\r/g, '').trim(), 'bad=0', '構文の誤りが無い');
 });

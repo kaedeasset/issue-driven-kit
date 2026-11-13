@@ -34,6 +34,11 @@
 | `.claude/issue-run/prompt.md` | 無人の Claude への指示文 | 同上 |
 | `.claude/issue-run/settings.json` | deny 50 個・Stop hook・env（自動更新を止める・時間切れを 90 分に） | 同上 |
 | `.claude/issue-run/stop-hook.ps1` | 報告が「合格」で守るファイルが無傷になるまで終わらせない | 同上 |
+| `Scripts/issue-protect.ps1` | 確認コマンドから守るファイルを出す関数 `Get-ProtectedFiles`（決まりはここ 1 か所。`issue-run.ps1` と `issue-create.ps1` が読む） | `Docs/Guides/Procedures/issue-goal-setting.md` 4.4 |
+| `Scripts/issue-gh.ps1` | `gh` を探す共通の部品（PATH に無いシェルでも `GitHub CLI` のフォルダーから使う。下の 3 本が読む） | `.claude/skills/github-issue/` |
+| `Scripts/issue-create.ps1` | 下書きから Issue を作り、`claude-run` を付け、無人の回が拾えるまで確かめる（`-DryRun` は作らずに下書きだけ見る） | 同上 |
+| `Scripts/issue-result.ps1` | 回った跡を見る（`PASS` 0・`FAIL` 1・`NOTRUN` と `RUNNING` 2。読むだけ） | 同上 |
+| `Scripts/issue-close.ps1` | `claude-done` の Issue に決まった形のコメントを付けて閉じる（ユーザーが「閉じて」と言ったときだけ） | 同上 |
 | `.github/ISSUE_TEMPLATE/claude-run.md` | Issue のひな形 | `Docs/Guides/Procedures/issue-goal-setting.md` |
 | `Scripts/unity-test.ps1` | 確認コマンドが呼ぶテストの入口（`Result:` 行・0 件は FAIL・エディタが開いている／Smart App Control が Unity を止めたら BLOCKED） | `Docs/Guides/Procedures/unity-test-procedure.md` |
 | `Scripts/issue-run-doctor.ps1` | 再現の点検（道具・ログイン・origin・ラベル・部品・設定・Unity・Smart App Control） | この文書の 6 章 |
@@ -110,7 +115,7 @@ flowchart LR
 | `WARN 長期トークン` | 無人の回が途中で認証切れになることがある | 6.2 の 4 |
 | `WARN ラベル` | `claude-run` などがまだ無い | `issue-run.ps1` の最初の実行で作られる。先に Issue にラベルを付けたいなら `gh label create claude-run` |
 | `WARN 作業ツリー` | 未コミットがある | コミットしてから回す（無人の回のコミットと混ざる） |
-| `NG 設定` | deny が足りない・裸の `CLAUDE.md` の deny がある・Stop hook が無い | 元のプロジェクトの `origin/main` の `.claude/issue-run/settings.json` と比べる（7 章） |
+| `NG 設定` | deny が足りない・裸の `CLAUDE.md` の deny がある・Stop hook が無い | キットの `editions/unity/files/.claude/issue-run/settings.json` と比べ、`-Update` で入れ直す（7 章） |
 | `NG Unity` | プロジェクトの版のエディタが無い | Unity Hub・環境変数 `UNITY_EXE` |
 | `WARN Unity の使用中` | この作業場所をエディタが開いている | 閉じるか、別の worktree で回す |
 | `NG Smart App Control` | On で、この 7 日に Unity の署名の無い DLL を止めた（コンパイルが毎回 `0x800711C7` で落ちる。テストは BLOCKED になる） | 切るかはユーザーが決める（Windows セキュリティ → アプリとブラウザーの制御。一度切ると戻せない）。`WARN` は On だがまだ止めていない・評価モード。点検は状態を読むだけで設定を変えない |
@@ -125,17 +130,17 @@ flowchart LR
 | 守るファイルの開始時の指紋・各回の JSON・確認コマンドの出力 | `Logs/IssueRun/<日時>/`（git に入らない） | その回で何が起きたかの証拠。消える前に要るものはまとめに写る |
 | まとめ | `Docs/Reports/YYYY/MM/DD/NN-issue-run.md`（git に入る） | 合格・不合格・断られたツール・各 Issue の報告 |
 | Issue のコメント | GitHub | 頭の行に `HEAD <sha>`。その版に戻せば同じ確認コマンドをもう一度回せる |
-| 仕組みの版 | `Scripts/issue-run.ps1` の頭のコメント（元のプロジェクトのどの版から持ってきたか）・この文書の 6.1 | 仕組みを直すと判定が変わりうる |
+| 仕組みの版 | `.issue-kit/version`（キットのどの版を入れたか）・この文書の 6.1 | 仕組みを直すと判定が変わりうる |
 | 道具の版 | この文書の 6.1 | Claude Code は勝手に更新される（このセッションの途中でも 2.1.306 → 2.1.307）。無人の回は `DISABLE_AUTOUPDATER=1` で止めている |
 
-## 7. 元のプロジェクトとの揃え方
+## 7. キットとの揃え方
 
-仕組みの元は Unreal Engine のプロジェクト。そこで直しが入ったら、Unity 側にも入れる。
+この仕組み（3 章の部品）の正は **Issue 駆動キット**（`editions/unity/files/`）。このリポジトリにあるのは、キットから入れた写し。入れた版は `.issue-kit/version`。
 
-1. 元のプロジェクトで `git fetch`。**作業フォルダーでなく `origin/main` を見る**（2026-10-22 に手元が 196 コミット遅れていて、古い版を持ってきた）。
-2. `git log origin/main --format='%h %ad %s' --date=short -- Scripts/issue-run.ps1 .claude/issue-run Docs/Guides/Working/issue-run.md Docs/Guides/Procedures/issue-goal-setting.md .claude/skills/design-cycle .github/ISSUE_TEMPLATE` で、前に持ってきた版（`issue-run.ps1` の頭のコメントの SHA）より後の直しを見る。
-3. `git show origin/main:<パス>`（Git Bash は `MSYS_NO_PATHCONV=1`）で取り出し、Unity 向けの変更（`issue-run.ps1` の頭のコメントの 4 点）を当て直す。
-4. `issue-run-doctor.ps1 -RunTests` と `-DryRun` で確かめ、頭のコメントの SHA を書き換えてコミットする。
+1. **改善はキットに入れる。** このリポジトリで部品を直したくなったら、先にキットを直す（特定のプロジェクトだけの語を入れない）。このリポジトリだけの手順・決めごとは、キットが持たない名前のファイルに書き、`CLAUDE.md` の入口から指す（キットの部品に書くと、次の `-Update` で上書きされる）。
+2. **このリポジトリは `-Update` で受け取る。** キットを `git pull` し、先に `pwsh <キット>\editions\unity\install.ps1 -Target . -Update -DryRun` で、上げる物と残す物（`CLAUDE.md`・`.gitignore`・`.gitattributes` のように利用先が手を入れる物）の一覧を見る。
+3. `pwsh <キット>\editions\unity\install.ps1 -Target . -Update` で入れ、`git diff` を読む。消えて困る行があれば、それはこのリポジトリだけの物なので、1 のとおり別のファイルへ移してから入れ直す。
+4. `issue-run-doctor.ps1 -RunTests` と `issue-run.ps1 -DryRun` で確かめ、コミットする。
 
 ## 8. 使い方（人がやること）
 

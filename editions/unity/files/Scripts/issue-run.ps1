@@ -267,21 +267,8 @@ function Get-OtherRunningIssues {
     return @($nums)
 }
 
-# 確認コマンドの中の語のうち、git が管理しているファイルを指すものを「守るファイル」にする。
-# 管理外（ビルドで作り直される exe・生成物）は守らない（毎回変わるので合格にならなくなる）。
-function Get-ProtectedFiles([string]$Code) {
-    $tracked = [System.Collections.Generic.HashSet[string]]::new([string[]]@(& git -C $RepoRoot ls-files), [System.StringComparer]::OrdinalIgnoreCase)
-    $found = [System.Collections.Generic.List[string]]::new()
-    foreach ($tok in ($Code -split '[\s;|&(){}=,]+')) {
-        $p = $tok.Trim().Trim('"', "'", '`')
-        if (-not $p -or $p.StartsWith('-')) { continue }
-        $full = Join-Path $RepoRoot $p
-        # 頭の ./ と / だけを取る。TrimStart('.', '/') は .github のような点で始まるフォルダーの点まで取り、守れなかった（2026-10-22）
-        $rel = $p.Replace([char]92, [char]47) -replace '^(\./|/)+', ''
-        if ((Test-Path -LiteralPath $full -PathType Leaf) -and $tracked.Contains($rel) -and -not $found.Contains($rel)) { $found.Add($rel) }
-    }
-    return @($found)
-}
+# 守るファイルの決まり（Get-ProtectedFiles）は issue-protect.ps1 の 1 か所（issue-create.ps1 も同じ物を読む）
+. (Join-Path $PSScriptRoot 'issue-protect.ps1')
 
 # 設定（$SettingsTemplate の JSON の文字列）の deny のうち、作業場所の直下の書き換えを断るパス
 # （Edit(//{{REPO}}/<パス>)・Write(//{{REPO}}/<パス>) の <パス>）を、重ならずに並べて返す。キットの Node 版 denyEditPaths と同じ決まり
@@ -500,7 +487,7 @@ if ($DryRun) {
         $c = Get-PassCriteria $t.body
         Write-Host ("#{0} 合格の条件 {1} 行・確認コマンド {2}" -f $t.number, $c.Items.Count, $(if ($c.Check) { 'あり' } else { 'なし' }))
         if ($c.Items.Count -eq 0 -or -not $c.Check) { Write-Host '  → 合格の条件か確認コマンドが無いので起動しない'; continue }
-        Write-Host ("  守るファイル: {0}" -f ((Get-ProtectedFiles $c.Check) -join ', '))
+        Write-Host ("  守るファイル: {0}" -f ((Get-ProtectedFiles $c.Check $RepoRoot) -join ', '))
         $denied = @(Get-DeniedMentions (($c.Items -join "`n") + "`n" + $c.Check) $denyPaths)
         if ($denied.Count) { Write-Host ("  deny のパス: {0}（無人の回では直せない。直す必要があれば人が直す。変えないことを確かめるだけなら無視してよい）" -f ($denied -join ', ')) }
         $pre = @(Get-Prerequisites $t.body)
@@ -508,7 +495,7 @@ if ($DryRun) {
     }
     if ($targets.Count -gt 0) {
         $c0 = Get-PassCriteria $targets[0].body
-        Write-Host '--- 1件目に渡す指示文 ---'; Write-Host (New-IssuePrompt $targets[0].number '<報告ファイル>' (Get-ProtectedFiles $c0.Check))
+        Write-Host '--- 1件目に渡す指示文 ---'; Write-Host (New-IssuePrompt $targets[0].number '<報告ファイル>' (Get-ProtectedFiles $c0.Check $RepoRoot))
     }
     exit 0
 }
@@ -580,7 +567,7 @@ $settingsText = (Get-Content $SettingsTemplate -Raw -Encoding utf8).Replace('{{S
             continue
         }
 
-        $protected = @(Get-ProtectedFiles $criteria.Check)
+        $protected = @(Get-ProtectedFiles $criteria.Check $RepoRoot)
         Write-Step "#$number $($t.title) を始める（条件 $($criteria.Items.Count) 行・守るファイル $($protected.Count) 件）"
         Set-IssueLabel $number -Add @($LabelWorking)
         $reportPath = Join-Path $LogDir "issue-$number-report.md"
