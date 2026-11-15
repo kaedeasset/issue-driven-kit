@@ -66,6 +66,8 @@ AI が途中で止まらないのはなぜ？ → [issue-run.md](docs/guides/wor
 
 誰が何をして、1 件がどう流れる？ → [issue-driven-development.md](docs/guides/working/issue-driven-development.md)
 
+スキルごとに何と入力して、何が起きる？ → [プロンプト手順書の 13・14 章](shared/manuals/issue-driven-prompt-manual.md)（design-cycle・文書・記録・コミット・push・PR・レーン同期・頭書き）
+
 ## 設計で決めたこと
 
 - 一つの決まりは一か所に書く（仕様 → 2 つの版 → 見本の順に直す）。
